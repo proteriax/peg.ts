@@ -1,7 +1,7 @@
 "use strict"
 
-const chai = require("chai")
-const util = require("pegjs").util
+import chai from "chai";
+import {util} from "pegjs";
 
 const expect = chai.expect
 

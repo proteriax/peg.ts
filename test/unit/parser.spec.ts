@@ -1,11 +1,7 @@
 "use strict";
 
-const chai = require( "chai" );
-const {
-    parser,
-    util,
-    ast,
-} = require( "pegjs" );
+import chai from "chai";
+import {parser, util, ast} from "pegjs";
 
 const expect = chai.expect;
 
@@ -23,7 +19,7 @@ function varyParserOptions( block ) {
     optionsVariants.forEach( variant => {
 
         describe(
-            "with options " + chai.util.inspect( variant ),
+            `with options ${chai.util.inspect( variant )}`,
             () => block( variant ),
         );
 

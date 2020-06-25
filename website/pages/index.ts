@@ -1,10 +1,10 @@
-"use strict";
+"use strict"
 
-import template from "../templates/article";
+import template from "../templates/article"
 
-export default template( {
-    title: "Home",
-    content: `
+export default template({
+  title: "Home",
+  content: `
 
         <div id="sidebar">
             <a class="try" href="online">Try PEG.js online</a>
@@ -58,4 +58,4 @@ export default template( {
         </div>
 
     `,
-} );
+})

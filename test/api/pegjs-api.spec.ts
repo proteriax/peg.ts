@@ -1,8 +1,8 @@
 "use strict"
 
-const chai = require("chai")
-const peg = require("pegjs")
-const sinon = require("sinon")
+import chai from "chai";
+import peg from "pegjs";
+import sinon from "sinon";
 
 const expect = chai.expect
 
@@ -223,7 +223,7 @@ describe("PEG.js API", function () {
         for (const label of RESERVED_WORDS) {
           it(label, function () {
             expect(() => {
-              peg.generate(["start = " + label + ":end", "end = 'a'"].join("\n"), {
+              peg.generate([`start = ${label}:end`, "end = 'a'"].join("\n"), {
                 output: "source",
               })
             }).to.throw(peg.parser.SyntaxError)
@@ -235,7 +235,7 @@ describe("PEG.js API", function () {
         for (const rule of RESERVED_WORDS) {
           it(rule, function () {
             expect(() => {
-              peg.generate(["start = " + rule, rule + " = 'a'"].join("\n"), {
+              peg.generate([`start = ${rule}`, `${rule} = 'a'`].join("\n"), {
                 output: "source",
               })
             }).to.not.throw(peg.parser.SyntaxError)

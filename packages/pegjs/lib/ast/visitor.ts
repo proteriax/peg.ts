@@ -1,6 +1,4 @@
-"use strict"
-
-import util from "../util";
+import util from "../util"
 
 // Abstract syntax tree visitor for PEG.js
 class ASTVisitor {
@@ -29,7 +27,7 @@ export default {
     visitor = util.enforceFastProperties(visitor)
     return visitor.visit.bind(visitor)
   },
-};
+}
 
 // Helper's to create visitor's for use with the ASTVisitor class
 const on = (ASTVisitor.on = {

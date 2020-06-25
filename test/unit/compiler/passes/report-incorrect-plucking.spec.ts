@@ -1,7 +1,7 @@
 "use strict";
 
-const { expect, use } = require( "chai" );
-const helpers = require( "./helpers" );
+import {expect, use} from "chai";
+import helpers from "./helpers";
 const pass = require( "pegjs" ).compiler.passes.check.reportIncorrectPlucking;
 
 use( helpers );

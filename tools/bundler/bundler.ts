@@ -2,4 +2,4 @@
 
 "use strict"
 
-require("webpack-nano/bin/wp")
+import "webpack-nano/bin/wp"

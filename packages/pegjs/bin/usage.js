@@ -1,4 +1,4 @@
-"use strict";
+"use strict"
 
 export default `
 Usage: pegjs [options] [<input_file>] [--]
@@ -52,4 +52,4 @@ Options:
     --trace                        Enable tracing in generated parser
 
 -v, --version                      Print version information and exit
-`;
+`

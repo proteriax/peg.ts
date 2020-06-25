@@ -1,6 +1,6 @@
-"use strict";
+"use strict"
 
-import template from "../templates/editor";
+import template from "../templates/editor"
 
 const input = `
 
@@ -35,10 +35,11 @@ Integer "integer"
 _ "whitespace"
   = [ \\t\\n\\r]*
 
-`;
+`
 
-export default () => template( {
+export default () =>
+  template({
     title: "Online Version",
     lib: "/vendor/pegjs/peg.js",
     input: input.trim(),
-} );
+  })

@@ -1,8 +1,8 @@
 "use strict"
 
-const chai = require("chai")
-const peg = require("pegjs")
-const sinon = require("sinon")
+import chai from "chai";
+import peg from "pegjs";
+import sinon from "sinon";
 
 const expect = chai.expect
 

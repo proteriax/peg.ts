@@ -1,7 +1,7 @@
 "use strict";
 
-const chai = require( "chai" );
-const helpers = require( "./helpers" );
+import chai from "chai";
+import helpers from "./helpers";
 const pass = require( "pegjs" ).compiler.passes.check.reportInfiniteRecursion;
 
 chai.use( helpers );

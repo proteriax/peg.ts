@@ -1,8 +1,6 @@
-"use strict"
-
-import Node from "./Node";
-import visitor from "./visitor";
-import util from "../util";
+import { Node } from "./Node"
+import visitor from "./visitor"
+import util from "../util"
 
 class Grammar extends Node {
   // Creates a new AST
@@ -30,7 +28,7 @@ class Grammar extends Node {
   }
 }
 
-export default Grammar;
+export default Grammar
 
 /* ***************************** @private ***************************** */
 

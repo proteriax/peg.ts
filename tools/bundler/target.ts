@@ -1,8 +1,8 @@
 "use strict"
 
-import dedent from "dedent";
-import path from "path";
-import webpack from "webpack";
+import dedent from "dedent"
+import path from "path"
+import webpack from "webpack"
 
 /**
  * A wrapper function to help create a configuration for Webpack.
@@ -63,4 +63,4 @@ function target({ banner, entry, library, minimize, name, output }) {
   }
 }
 
-export default target;
+export default target

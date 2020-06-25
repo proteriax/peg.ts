@@ -1,348 +1,279 @@
-"use strict";
+"use strict"
 
-import fs from "fs";
-import path from "path";
-import peg from "../lib/peg";
-const util = peg.util;
+import fs from "fs"
+import path from "path"
+import peg from "../lib/peg"
+const util = peg.util
 
 // Options
 
-let inputFile = null;
-let outputFile = null;
+let inputFile = null
+let outputFile = null
 let options = {
-    "--": [],
-    "cache": false,
-    "dependencies": {},
-    "exportVar": null,
-    "format": "commonjs",
-    "optimize": "speed",
-    "output": "source",
-    "parser": {},
-    "plugins": [],
-    "trace": false,
-};
+  "--": [],
+  cache: false,
+  dependencies: {},
+  exportVar: null,
+  format: "commonjs",
+  optimize: "speed",
+  output: "source",
+  parser: {},
+  plugins: [],
+  trace: false,
+}
 
-const EXPORT_VAR_FORMATS = [ "globals", "umd" ];
-const DEPENDENCY_FORMATS = [ "amd", "commonjs", "es", "umd" ];
-const MODULE_FORMATS = [ "amd", "bare", "commonjs", "es", "globals", "umd" ];
-const OPTIMIZATION_GOALS = [ "size", "speed" ];
+const EXPORT_VAR_FORMATS = ["globals", "umd"]
+const DEPENDENCY_FORMATS = ["amd", "commonjs", "es", "umd"]
+const MODULE_FORMATS = ["amd", "bare", "commonjs", "es", "globals", "umd"]
+const OPTIMIZATION_GOALS = ["size", "speed"]
 
 // Helpers
 
-function abort( message ) {
-
-    console.error( message );
-    process.exit( 1 );
-
+function abort(message) {
+  console.error(message)
+  process.exit(1)
 }
 
-function addExtraOptions( config ) {
-
-    if ( typeof config === "string" ) {
-
-        try {
-
-            config = JSON.parse( config );
-
-        } catch ( e ) {
-
-            if ( ! ( e instanceof SyntaxError ) ) throw e;
-            abort( `Error parsing JSON: ${e.message}` );
-
-        }
-
+function addExtraOptions(config) {
+  if (typeof config === "string") {
+    try {
+      config = JSON.parse(config)
+    } catch (e) {
+      if (!(e instanceof SyntaxError)) throw e
+      abort(`Error parsing JSON: ${e.message}`)
     }
-    if ( typeof config !== "object" ) {
+  }
+  if (typeof config !== "object") {
+    abort("The JSON with extra options has to represent an object.")
+  }
 
-        abort( "The JSON with extra options has to represent an object." );
+  if (config.input !== null || config.output !== null) {
+    // We don't want to touch the orignal config, just in case it comes from
+    // a javascript file, in which case its possible the same object is used
+    // for something else, somewhere else.
+    config = util.clone(config)
+    const { input, output } = config
 
-    }
+    if (input !== null) {
+      if (typeof input !== "string") abort("The option `input` must be a string.")
 
-    if ( config.input !== null || config.output !== null ) {
+      if (inputFile !== null)
+        abort(`The input file is already set, cannot use: "${input}".`)
 
-        // We don't want to touch the orignal config, just in case it comes from
-        // a javascript file, in which case its possible the same object is used
-        // for something else, somewhere else.
-        config = util.clone( config );
-        const { input, output } = config;
-
-        if ( input !== null ) {
-
-            if ( typeof input !== "string" )
-
-                abort( "The option `input` must be a string." );
-
-            if ( inputFile !== null )
-
-                abort( `The input file is already set, cannot use: "${ input }".` );
-
-            inputFile = input;
-            delete config.input;
-
-        }
-
-        if ( output !== null ) {
-
-            if ( typeof output !== "string" )
-
-                abort( "The option `output` must be a string." );
-
-            outputFile = output;
-            delete config.output;
-
-        }
-
+      inputFile = input
+      delete config.input
     }
 
-    options = util.processOptions( config, options );
+    if (output !== null) {
+      if (typeof output !== "string") abort("The option `output` must be a string.")
 
+      outputFile = output
+      delete config.output
+    }
+  }
+
+  options = util.processOptions(config, options)
 }
 
-function formatChoicesList( list ) {
+function formatChoicesList(list) {
+  list = list.map(entry => `"${entry}"`)
+  const lastOption = list.pop()
 
-    list = list.map( entry => `"${ entry }"` );
-    const lastOption = list.pop();
-
-    return list.length === 0
-        ? lastOption
-        : `${list.join( ", " )} or ${lastOption}`;
-
+  return list.length === 0 ? lastOption : `${list.join(", ")} or ${lastOption}`
 }
 
-function updateList( list, string ) {
-
-    string
-        .split( "," )
-        .forEach( entry => {
-
-            entry = entry.trim();
-            if ( !list.includes(entry) ) {
-
-                list.push( entry );
-
-            }
-
-        } );
-
+function updateList(list, string) {
+  string.split(",").forEach(entry => {
+    entry = entry.trim()
+    if (!list.includes(entry)) {
+      list.push(entry)
+    }
+  })
 }
 
 // Arguments
 
-let args = process.argv.slice( 2 );
+let args = process.argv.slice(2)
 
-function nextArg( option ) {
-
-    if ( args.length === 0 ) {
-
-        abort( `Missing parameter of the ${ option } option.` );
-
-    }
-    return args.shift();
-
+function nextArg(option) {
+  if (args.length === 0) {
+    abort(`Missing parameter of the ${option} option.`)
+  }
+  return args.shift()
 }
 
 // Parse Arguments
 
-while ( args.length > 0 ) {
-    let config;
-    let mod;
-    let argument = args.shift();
+while (args.length > 0) {
+  let config
+  let mod
+  let argument = args.shift()
 
-    if ( argument.indexOf( "-" ) === 0 && argument.indexOf( "=" ) > 1 ) {
+  if (argument.indexOf("-") === 0 && argument.indexOf("=") > 1) {
+    argument = argument.split("=")
+    args.unshift(argument.length > 2 ? argument.slice(1) : argument[1])
+    argument = argument[0]
+  }
 
-        argument = argument.split( "=" );
-        args.unshift( argument.length > 2 ? argument.slice( 1 ) : argument[ 1 ] );
-        argument = argument[ 0 ];
+  switch (argument) {
+    case "--":
+      options["--"] = args
+      args = []
+      break
 
-    }
+    case "-a":
+    case "--allowed-start-rules":
+      if (!options.allowedStartRules) options.allowedStartRules = []
+      updateList(options.allowedStartRules, nextArg("--allowed-start-rules"))
+      break
 
-    switch ( argument ) {
+    case "--cache":
+      options.cache = true
+      break
 
-        case "--":
-            options[ "--" ] = args;
-            args = [];
-            break;
+    case "--no-cache":
+      options.cache = false
+      break
 
-        case "-a":
-        case "--allowed-start-rules":
-            if ( ! options.allowedStartRules ) options.allowedStartRules = [];
-            updateList( options.allowedStartRules, nextArg( "--allowed-start-rules" ) );
-            break;
+    case "-d":
+    case "--dependency":
+      argument = nextArg("-d/--dependency")
+      mod = argument.split(":")
 
-        case "--cache":
-            options.cache = true;
-            break;
+      if (mod.length === 1) mod = [argument, argument]
+      else if (mod.length > 2) mod[1] = mod.slice(1)
 
-        case "--no-cache":
-            options.cache = false;
-            break;
+      options.dependencies[mod[0]] = mod[1]
+      break
 
-        case "-d":
-        case "--dependency":
-            argument = nextArg( "-d/--dependency" );
-            mod = argument.split( ":" );
+    case "-e":
+    case "--export-var":
+      options.exportVar = nextArg("-e/--export-var")
+      break
 
-            if ( mod.length === 1 ) mod = [ argument, argument ];
-            else if ( mod.length > 2 ) mod[ 1 ] = mod.slice( 1 );
+    case "--extra-options":
+      addExtraOptions(nextArg("--extra-options"))
+      break
 
-            options.dependencies[ mod[ 0 ] ] = mod[ 1 ];
-            break;
+    case "-c":
+    case "--config":
+    case "--extra-options-file":
+      argument = nextArg("-c/--config/--extra-options-file")
+      if (path.extname(argument) === ".js") {
+        config = require(path.resolve(argument))
+      } else {
+        try {
+          config = fs.readFileSync(argument, "utf8")
+        } catch (e) {
+          abort(`Can't read from file "${argument}".`)
+        }
+      }
+      addExtraOptions(config)
+      break
 
-        case "-e":
-        case "--export-var":
-            options.exportVar = nextArg( "-e/--export-var" );
-            break;
+    case "-f":
+    case "--format":
+      argument = nextArg("-f/--format")
+      if (!MODULE_FORMATS.includes(argument)) {
+        abort(`Module format must be either ${formatChoicesList(MODULE_FORMATS)}.`)
+      }
+      options.format = argument
+      break
 
-        case "--extra-options":
-            addExtraOptions( nextArg( "--extra-options" ) );
-            break;
+    case "-h":
+    case "--help":
+      console.log(require("./usage"))
+      process.exit()
+      break
 
-        case "-c":
-        case "--config":
-        case "--extra-options-file":
-            argument = nextArg( "-c/--config/--extra-options-file" );
-            if ( path.extname( argument ) === ".js" ) {
+    case "-O":
+    case "--optimize":
+      argument = nextArg("-O/--optimize")
+      if (!OPTIMIZATION_GOALS.includes(argument)) {
+        abort(
+          `Optimization goal must be either ${formatChoicesList(OPTIMIZATION_GOALS)}.`
+        )
+      }
+      options.optimize = argument
+      break
 
-                config = require( path.resolve( argument ) );
+    case "-o":
+    case "--output":
+      outputFile = nextArg("-o/--output")
+      break
 
-            } else {
+    case "-p":
+    case "--plugin":
+      argument = nextArg("-p/--plugin")
+      try {
+        mod = require(argument)
+      } catch (ex1) {
+        if (ex1.code !== "MODULE_NOT_FOUND") throw ex1
+        try {
+          mod = require(path.resolve(argument))
+        } catch (ex2) {
+          if (ex2.code !== "MODULE_NOT_FOUND") throw ex2
+          abort(`Can't load module "${argument}".`)
+        }
+      }
+      options.plugins.push(mod)
+      break
 
-                try {
+    case "--trace":
+      options.trace = true
+      break
 
-                    config = fs.readFileSync( argument, "utf8" );
+    case "--no-trace":
+      options.trace = false
+      break
 
-                } catch ( e ) {
+    case "-v":
+    case "--version":
+      console.log(`PEG.js v${peg.VERSION}`)
+      process.exit()
+      break
 
-                    abort( `Can't read from file "${ argument }".` );
-
-                }
-
-            }
-            addExtraOptions( config );
-            break;
-
-        case "-f":
-        case "--format":
-            argument = nextArg( "-f/--format" );
-            if ( !MODULE_FORMATS.includes(argument) ) {
-
-                abort( `Module format must be either ${ formatChoicesList( MODULE_FORMATS ) }.` );
-
-            }
-            options.format = argument;
-            break;
-
-        case "-h":
-        case "--help":
-            console.log( require( "./usage" ) );
-            process.exit();
-            break;
-
-        case "-O":
-        case "--optimize":
-            argument = nextArg( "-O/--optimize" );
-            if ( !OPTIMIZATION_GOALS.includes(argument) ) {
-
-                abort( `Optimization goal must be either ${ formatChoicesList( OPTIMIZATION_GOALS ) }.` );
-
-            }
-            options.optimize = argument;
-            break;
-
-        case "-o":
-        case "--output":
-            outputFile = nextArg( "-o/--output" );
-            break;
-
-        case "-p":
-        case "--plugin":
-            argument = nextArg( "-p/--plugin" );
-            try {
-
-                mod = require( argument );
-
-            } catch ( ex1 ) {
-
-                if ( ex1.code !== "MODULE_NOT_FOUND" ) throw ex1;
-                try {
-
-                    mod = require( path.resolve( argument ) );
-
-                } catch ( ex2 ) {
-
-                    if ( ex2.code !== "MODULE_NOT_FOUND" ) throw ex2;
-                    abort( `Can't load module "${ argument }".` );
-
-                }
-
-            }
-            options.plugins.push( mod );
-            break;
-
-        case "--trace":
-            options.trace = true;
-            break;
-
-        case "--no-trace":
-            options.trace = false;
-            break;
-
-        case "-v":
-        case "--version":
-            console.log( `PEG.js v${peg.VERSION}` );
-            process.exit();
-            break;
-
-        default:
-            if ( inputFile !== null ) {
-
-                abort( `Unknown option: "${ argument }".` );
-
-            }
-            inputFile = argument;
-
-    }
+    default:
+      if (inputFile !== null) {
+        abort(`Unknown option: "${argument}".`)
+      }
+      inputFile = argument
+  }
 }
 
 // Validation and defaults
 
-if ( Object.keys( options.dependencies ).length > 0 ) {
-
-    if ( !DEPENDENCY_FORMATS.includes(options.format) ) {
-
-        abort( `Can't use the -d/--dependency option with the "${ options.format }" module format.` );
-
-    }
-
+if (Object.keys(options.dependencies).length > 0) {
+  if (!DEPENDENCY_FORMATS.includes(options.format)) {
+    abort(
+      `Can't use the -d/--dependency option with the "${options.format}" module format.`
+    )
+  }
 }
 
-if ( options.exportVar !== null ) {
-
-    if ( !EXPORT_VAR_FORMATS.includes(options.format) ) {
-
-        abort( `Can't use the -e/--export-var option with the "${ options.format }" module format.` );
-
-    }
-
+if (options.exportVar !== null) {
+  if (!EXPORT_VAR_FORMATS.includes(options.format)) {
+    abort(
+      `Can't use the -e/--export-var option with the "${options.format}" module format.`
+    )
+  }
 }
 
-if ( inputFile === null ) inputFile = "-";
+if (inputFile === null) inputFile = "-"
 
-if ( outputFile === null ) {
-
-    if ( inputFile === "-" ) outputFile = "-";
-    else if ( inputFile ) {
-
-        outputFile = `${inputFile
-    .substr( 0, inputFile.length - path.extname( inputFile ).length )}.js`;
-
-    }
-
+if (outputFile === null) {
+  if (inputFile === "-") outputFile = "-"
+  else if (inputFile) {
+    outputFile = `${inputFile.substr(
+      0,
+      inputFile.length - path.extname(inputFile).length
+    )}.js`
+  }
 }
 
 // Export
 
-options.inputFile = inputFile;
-options.outputFile = outputFile;
+options.inputFile = inputFile
+options.outputFile = outputFile
 
-export default options;
+export default options
