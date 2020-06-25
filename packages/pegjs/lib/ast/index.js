@@ -1,5 +1,5 @@
-"use strict";
+"use strict"
 
-exports.visitor = require( "./visitor" );
-exports.Node = require( "./Node" );
-exports.Grammar = require( "./Grammar" );
+exports.visitor = require("./visitor")
+exports.Node = require("./Node")
+exports.Grammar = require("./Grammar")

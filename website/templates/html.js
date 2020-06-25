@@ -1,4 +1,4 @@
-"use strict";
+"use strict"
 
 const defaultEnd = `
         <footer id="footer">
@@ -11,25 +11,24 @@ const defaultEnd = `
             Copyright &copy; 2010&ndash;2016 <a href="https://majda.cz/">David Majda</a>
         </footer>
     </div>
-`;
+`
 
-function menuItem( title, url, text ) {
+function menuItem(title, url, text) {
+  const className = title === text ? ' class="current"' : ""
 
-    const className = title === text ? " class=\"current\"" : "";
-
-    return `<a ${ className } href="/${ url }">${ text }</a>`;
-
+  return `<a ${className} href="/${url}">${text}</a>`
 }
 
-module.exports = ( {
-    bodyStart = "<div id='main'>",
-    bodyEnd = "    " + defaultEnd.trimLeft(),
-    content = "",
-    ga = "UA-100728112-1",
-    head = "",
-    layout = "default",
-    title = null,
-} = {} ) => `
+module.exports = ({
+  bodyStart = "<div id='main'>",
+  bodyEnd = "    " + defaultEnd.trimLeft(),
+  content = "",
+  ga = "UA-100728112-1",
+  head = "",
+  layout = "default",
+  title = null,
+} = {}) =>
+  `
 
 <!DOCTYPE html>
 <html>
@@ -40,9 +39,11 @@ module.exports = ( {
     <meta name="copyright" content="Copyright &copy; 2017 Futago-za Ryuu">
     <meta name="keywords" content="parser generator, PEG, JavaScript">
     <meta name="description" content="PEG.js is a parser generator for JavaScript based on the parsing expression grammar formalism.">
-    <title>${ title && title !== "Home" ? title + " &raquo; " : "" }PEG.js &ndash; Parser Generator for JavaScript</title>
+    <title>${
+      title && title !== "Home" ? title + " &raquo; " : ""
+    }PEG.js &ndash; Parser Generator for JavaScript</title>
     <link rel="stylesheet" href="/css/common.css">
-    <link rel="stylesheet" href="/css/layout-${ layout }.css">
+    <link rel="stylesheet" href="/css/layout-${layout}.css">
     <link rel="stylesheet" href="/css/content.css">
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <!--[if IE]>
@@ -53,37 +54,37 @@ module.exports = ( {
         }
     </script>
     <![endif]-->
-    ${ head }
+    ${head}
 </head>
 
 <body>
-    ${ bodyStart }
+    ${bodyStart}
         <header id="header">
             <h1><a href="/">PEG.js</a></h1>
             <h2>Parser Generator for JavaScript</h2>
         </header>
 
         <nav id="menu">
-            ${ menuItem( title, "", "Home" ) }
-            ${ menuItem( title, "online", "Online Version" ) }
-            ${ menuItem( title, "documentation", "Documentation" ) }
-            ${ menuItem( title, "development", "Development" ) }
+            ${menuItem(title, "", "Home")}
+            ${menuItem(title, "online", "Online Version")}
+            ${menuItem(title, "documentation", "Documentation")}
+            ${menuItem(title, "development", "Development")}
         </nav>
 
-        ${ content.trim() }
+        ${content.trim()}
 
-    ${ bodyEnd }
+    ${bodyEnd}
 
     <script type="text/javascript">
         (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
         m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
         })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-        ga('create', '${ ga }', 'auto');
+        ga('create', '${ga}', 'auto');
         ga('send', 'pageview');
     </script>
 </body>
 
 </html>
 
-`.trim();
+`.trim()

@@ -1,17 +1,15 @@
-"use strict";
+"use strict"
 
 //
 // Check if the given element's expression is of type `semantic_*`
 //
-function isSemanticPredicate( element ) {
+function isSemanticPredicate(element) {
+  const type = element.expression.type
 
-    const type = element.expression.type;
+  if (type === "semantic_and") return true
+  if (type === "semantic_not") return true
 
-    if ( type === "semantic_and" ) return true;
-    if ( type === "semantic_not" ) return true;
-
-    return false;
-
+  return false
 }
 
 //
@@ -20,34 +18,24 @@ function isSemanticPredicate( element ) {
 //   - plucking can not be done with an action block
 //   - cannot pluck a semantic predicate
 //
-function reportIncorrectPlucking( ast, session ) {
+function reportIncorrectPlucking(ast, session) {
+  session.buildVisitor({
+    action(node) {
+      this.visit(node.expression, true)
+    },
 
-    session.buildVisitor( {
+    labeled(node, action) {
+      if (node.pick !== true) return void 0
 
-        action( node ) {
+      if (action === true)
+        session.error(`"@" cannot be used with an action block.`, node.location)
 
-            this.visit( node.expression, true );
+      if (isSemanticPredicate(node))
+        session.error(`"@" cannot be used on a semantic predicate.`, node.location)
 
-        },
-
-        labeled( node, action ) {
-
-            if ( node.pick !== true ) return void 0;
-
-            if ( action === true )
-
-                session.error( `"@" cannot be used with an action block.`, node.location );
-
-            if ( isSemanticPredicate( node ) )
-
-                session.error( `"@" cannot be used on a semantic predicate.`, node.location );
-
-            this.visit( node.expression );
-
-        },
-
-    } )( ast );
-
+      this.visit(node.expression)
+    },
+  })(ast)
 }
 
-module.exports = reportIncorrectPlucking;
+module.exports = reportIncorrectPlucking

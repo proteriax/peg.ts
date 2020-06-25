@@ -1,35 +1,51 @@
 {
-    "name": "pegjs-dev",
-    "private": true,
-    "workspaces": [
-        "packages/*",
-        "tools/*",
-        "test",
-        "website"
-    ],
-    "scripts": {
-        "lint": "eslint --ext .js .",
-        "spec": "mocha --reporter progress",
-        "benchmark": "node tools/benchmark",
-        "build-parser": "pegjs -c src/pegjs.config.js",
-        "build-dist": "bundle",
-        "build-website": "node website/export",
-        "clean": "rimraf public packages/pegjs/dist examples/*.js",
-        "impact": "node tools/impact master",
-        "build": "node website/export --fresh",
-        "test": "nyc mocha",
-        "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
-    },
-    "dependencies": {
-        "@futagoza/eslint-config": "11.2.0",
-        "@types/node": "8",
-        "codecov": "3.6.1",
-        "eslint": "6.6.0",
-        "mocha": "6.2.2",
-        "nyc": "14.1.1",
-        "rimraf": "3.0.0"
-    },
-    "engines": {
-        "node": ">= 8"
-    }
+  "name": "pegjs-dev",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "tools/*",
+    "test",
+    "website"
+  ],
+  "scripts": {
+    "lint": "eslint --ext .js .",
+    "spec": "mocha --reporter progress",
+    "benchmark": "node tools/benchmark",
+    "build-parser": "pegjs -c src/pegjs.config.js",
+    "build-dist": "bundle",
+    "build-website": "node website/export",
+    "clean": "rimraf public packages/pegjs/dist examples/*.js",
+    "impact": "node tools/impact master",
+    "build": "node website/export --fresh",
+    "test": "nyc mocha",
+    "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
+  },
+  "dependencies": {
+    "@futagoza/eslint-config": "11.2.0",
+    "@types/node": "8",
+    "codecov": "3.6.1",
+    "eslint": "6.6.0",
+    "mocha": "6.2.2",
+    "nyc": "14.1.1",
+    "rimraf": "3.0.0"
+  },
+  "engines": {
+    "node": ">= 12.0"
+  },
+  "prettier": {
+    "arrowParens": "avoid",
+    "tabWidth": 2,
+    "printWidth": 90,
+    "semi": false,
+    "singleQuote": false,
+    "trailingComma": "es5"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.1.0",
+    "esm": "^3.2.25",
+    "lebab": "^3.1.0",
+    "prettier": "^2.0.5",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.5"
+  }
 }

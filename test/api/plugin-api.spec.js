@@ -1,106 +1,89 @@
-"use strict";
+"use strict"
 
-const chai = require( "chai" );
-const peg = require( "pegjs" );
+const chai = require("chai")
+const peg = require("pegjs")
 
-const expect = chai.expect;
+const expect = chai.expect
 
-describe( "plugin API", function () {
+describe("plugin API", function () {
+  describe("use", function () {
+    const grammar = "start = 'a'"
 
-    describe( "use", function () {
+    it("is called for each plugin", function () {
+      const pluginsUsed = [false, false, false]
+      const plugins = [
+        {
+          use() {
+            pluginsUsed[0] = true
+          },
+        },
+        {
+          use() {
+            pluginsUsed[1] = true
+          },
+        },
+        {
+          use() {
+            pluginsUsed[2] = true
+          },
+        },
+      ]
 
-        const grammar = "start = 'a'";
+      peg.generate(grammar, { plugins: plugins })
 
-        it( "is called for each plugin", function () {
+      expect(pluginsUsed).to.deep.equal([true, true, true])
+    })
 
-            const pluginsUsed = [ false, false, false ];
-            const plugins = [
-                { use() {
+    it("receives configuration", function () {
+      const plugin = {
+        use(config) {
+          expect(config).to.be.an("object")
 
-                    pluginsUsed[ 0 ] = true;
+          expect(config.parser).to.be.an("object")
+          expect(config.parser.parse("start = 'a'")).to.be.an("object")
 
-                } },
-                { use() {
+          expect(config.passes).to.be.an("object")
 
-                    pluginsUsed[ 1 ] = true;
+          expect(config.passes.check).to.be.an("array")
+          config.passes.check.forEach(pass => {
+            expect(pass).to.be.a("function")
+          })
 
-                } },
-                { use() {
+          expect(config.passes.transform).to.be.an("array")
+          config.passes.transform.forEach(pass => {
+            expect(pass).to.be.a("function")
+          })
 
-                    pluginsUsed[ 2 ] = true;
+          expect(config.passes.generate).to.be.an("array")
+          config.passes.generate.forEach(pass => {
+            expect(pass).to.be.a("function")
+          })
+        },
+      }
 
-                } },
-            ];
+      peg.generate(grammar, { plugins: [plugin] })
+    })
 
-            peg.generate( grammar, { plugins: plugins } );
+    it("receives options", function () {
+      const generateOptions = {
+        plugins: [
+          {
+            use(config, options) {
+              expect(options).to.equal(generateOptions)
+            },
+          },
+        ],
+        foo: 42,
+      }
 
-            expect( pluginsUsed ).to.deep.equal( [ true, true, true ] );
+      peg.generate(grammar, generateOptions)
+    })
 
-        } );
-
-        it( "receives configuration", function () {
-
-            const plugin = {
-                use( config ) {
-
-                    expect( config ).to.be.an( "object" );
-
-                    expect( config.parser ).to.be.an( "object" );
-                    expect( config.parser.parse( "start = 'a'" ) ).to.be.an( "object" );
-
-                    expect( config.passes ).to.be.an( "object" );
-
-                    expect( config.passes.check ).to.be.an( "array" );
-                    config.passes.check.forEach( pass => {
-
-                        expect( pass ).to.be.a( "function" );
-
-                    } );
-
-                    expect( config.passes.transform ).to.be.an( "array" );
-                    config.passes.transform.forEach( pass => {
-
-                        expect( pass ).to.be.a( "function" );
-
-                    } );
-
-                    expect( config.passes.generate ).to.be.an( "array" );
-                    config.passes.generate.forEach( pass => {
-
-                        expect( pass ).to.be.a( "function" );
-
-                    } );
-
-                },
-            };
-
-            peg.generate( grammar, { plugins: [ plugin ] } );
-
-        } );
-
-        it( "receives options", function () {
-
-            const generateOptions = {
-                plugins: [ {
-                    use( config, options ) {
-
-                        expect( options ).to.equal( generateOptions );
-
-                    },
-                } ],
-                foo: 42,
-            };
-
-            peg.generate( grammar, generateOptions );
-
-        } );
-
-        it( "can replace parser", function () {
-
-            const plugin = {
-                use( config ) {
-
-                    config.parser = peg.generate( `
+    it("can replace parser", function () {
+      const plugin = {
+        use(config) {
+          config.parser = peg.generate(
+            `
 
                         start = .* {
                             return new ast.Grammar( void 0, [{
@@ -114,69 +97,55 @@ describe( "plugin API", function () {
                             }] );
                         }
 
-                    `, { context: { ast: peg.ast } } );
+                    `,
+            { context: { ast: peg.ast } }
+          )
+        },
+      }
 
-                },
-            };
+      const parser = peg.generate("a", { plugins: [plugin] })
+      expect(parser.parse("a")).to.equal("a")
+    })
 
-            const parser = peg.generate( "a", { plugins: [ plugin ] } );
-            expect( parser.parse( "a" ) ).to.equal( "a" );
+    it("can change compiler passes", function () {
+      const plugin = {
+        use(config) {
+          function pass(ast) {
+            ast.code = "exports.parse = function() { return 42; }"
+          }
 
-        } );
+          config.passes.generate = [pass]
+        },
+      }
 
-        it( "can change compiler passes", function () {
+      const parser = peg.generate(grammar, { plugins: [plugin] })
+      expect(parser.parse("a")).to.equal(42)
+    })
 
-            const plugin = {
-                use( config ) {
-
-                    function pass( ast ) {
-
-                        ast.code = "exports.parse = function() { return 42; }";
-
-                    }
-
-                    config.passes.generate = [ pass ];
-
-                },
-            };
-
-            const parser = peg.generate( grammar, { plugins: [ plugin ] } );
-            expect( parser.parse( "a" ) ).to.equal( 42 );
-
-        } );
-
-        it( "can change options", function () {
-
-            const grammar = `
+    it("can change options", function () {
+      const grammar = `
 
                 a = 'x'
                 b = 'x'
                 c = 'x'
 
-            `;
-            const plugin = {
-                use( config, options ) {
+            `
+      const plugin = {
+        use(config, options) {
+          options.allowedStartRules = ["b", "c"]
+        },
+      }
 
-                    options.allowedStartRules = [ "b", "c" ];
+      const parser = peg.generate(grammar, {
+        allowedStartRules: ["a"],
+        plugins: [plugin],
+      })
 
-                },
-            };
-
-            const parser = peg.generate( grammar, {
-                allowedStartRules: [ "a" ],
-                plugins: [ plugin ],
-            } );
-
-            expect( () => {
-
-                parser.parse( "x", { startRule: "a" } );
-
-            } ).to.throw();
-            expect( parser.parse( "x", { startRule: "b" } ) ).to.equal( "x" );
-            expect( parser.parse( "x", { startRule: "c" } ) ).to.equal( "x" );
-
-        } );
-
-    } );
-
-} );
+      expect(() => {
+        parser.parse("x", { startRule: "a" })
+      }).to.throw()
+      expect(parser.parse("x", { startRule: "b" })).to.equal("x")
+      expect(parser.parse("x", { startRule: "c" })).to.equal("x")
+    })
+  })
+})

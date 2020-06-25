@@ -1,73 +1,64 @@
-"use strict";
+"use strict"
 
-const cp = require( "child_process" );
-const fs = require( "fs" );
-const path = require( "path" );
+const cp = require("child_process")
+const fs = require("fs")
+const path = require("path")
 
-function publish( id ) {
+function publish(id) {
+  // paths
 
-    // paths
+  const packagejson = require.resolve(id + "/package.json")
+  const directory = path.dirname(packagejson)
+  const npmrc = path.join(directory, ".npmrc")
 
-    const packagejson = require.resolve( id + "/package.json" );
-    const directory = path.dirname( packagejson );
-    const npmrc = path.join( directory, ".npmrc" );
+  // variabes
 
-    // variabes
+  const APP = require("./package.json").name
+  const VERSION = require(packagejson).version
 
-    const APP = require( "./package.json" ).name;
-    const VERSION = require( packagejson ).version;
+  const { GITHUB_REF, GITHUB_SHA, NPM_TOKEN } = process.env
 
-    const {
+  // local helpers
 
-        GITHUB_REF,
-        GITHUB_SHA,
-        NPM_TOKEN,
+  function die(err) {
+    console.error(err)
+    process.exit(1)
+  }
 
-    } = process.env;
+  function exec(command, print = true) {
+    const result = cp.execSync(command, {
+      cwd: directory,
+      stdio: print ? "inherit" : void 0,
+    })
 
-    // local helpers
+    return print ? void 0 : result.toString("utf8")
+  }
 
-    function die( err ) {
+  // assertions
 
-        console.error( err );
-        process.exit( 1 );
+  if (!GITHUB_REF) die("`process.env.GITHUB_REF` is required by " + APP)
+  if (!GITHUB_SHA) die("`process.env.GITHUB_SHA` is required by " + APP)
+  if (!NPM_TOKEN) die("`process.env.NPM_TOKEN` is required by " + APP)
 
-    }
+  // update version field in `<package>/package.json`
 
-    function exec( command, print = true ) {
+  const GIT_COMMIT_SHORT_SHA = exec("git rev-parse --short " + GITHUB_SHA, false)
+  const dev = `${VERSION}-${GITHUB_REF.replace(
+    "refs/heads/",
+    ""
+  )}.${GIT_COMMIT_SHORT_SHA}`
 
-        const result = cp.execSync( command, {
-            cwd: directory,
-            stdio: print ? "inherit" : void 0,
-        } );
+  exec(`npm --no-git-tag-version -f version ${dev}`)
 
-        return print ? void 0 : result.toString( "utf8" );
+  // add npm token and remove ignore file (this is a DEV release after all)
 
-    }
+  fs.writeFileSync(npmrc, `//registry.npmjs.org/:_authToken=${NPM_TOKEN}`)
 
-    // assertions
+  // publish <package>@dev
 
-    if ( ! GITHUB_REF ) die( "`process.env.GITHUB_REF` is required by " + APP );
-    if ( ! GITHUB_SHA ) die( "`process.env.GITHUB_SHA` is required by " + APP );
-    if ( ! NPM_TOKEN ) die( "`process.env.NPM_TOKEN` is required by " + APP );
+  exec("npm publish --tag=dev")
 
-    // update version field in `<package>/package.json`
-
-    const GIT_COMMIT_SHORT_SHA = exec( "git rev-parse --short " + GITHUB_SHA, false );
-    const dev = `${ VERSION }-${ GITHUB_REF.replace( "refs/heads/", "" ) }.${ GIT_COMMIT_SHORT_SHA }`;
-
-    exec( `npm --no-git-tag-version -f version ${ dev }` );
-
-    // add npm token and remove ignore file (this is a DEV release after all)
-
-    fs.writeFileSync( npmrc, `//registry.npmjs.org/:_authToken=${ NPM_TOKEN }` );
-
-    // publish <package>@dev
-
-    exec( "npm publish --tag=dev" );
-
-    fs.unlinkSync( npmrc );
-
+  fs.unlinkSync(npmrc)
 }
 
-module.exports = publish;
+module.exports = publish

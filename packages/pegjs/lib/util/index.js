@@ -1,9 +1,9 @@
-"use strict";
+"use strict"
 
-const arrays = require( "./arrays" );
-const js = require( "./js" );
-const objects = require( "./objects" );
-const vm = require( "./vm" );
+const arrays = require("./arrays")
+const js = require("./js")
+const objects = require("./objects")
+const vm = require("./vm")
 
 /**
  * ```ts
@@ -12,64 +12,52 @@ const vm = require( "./vm" );
  * type StageMap = { [string]: { [string]: Pass } };
  * type PassMap = { [string]: Pass[] };
  * ```
- * 
+ *
  * The PEG.js compiler runs each `Pass` on the `PassMap` (the `passes` option on it's 2nd
  * argument), but the compiler api exposes a `StageMap` so that it is easier for plugin
  * developer's to access the built-in passes.
- * 
+ *
  * This method takes a `StageMap`, returning a `PassMap` that can be used by the compiler.
  */
-const convertPasses = ( () => {
+const convertPasses = (() => {
+  function convertStage(passes) {
+    return Array.isArray(passes) ? passes : objects.values(passes)
+  }
 
-    function convertStage( passes ) {
+  function convertPasses(stages) {
+    return objects.map(stages, convertStage)
+  }
 
-        return Array.isArray( passes )
-            ? passes
-            : objects.values( passes );
+  return convertPasses
+})()
 
-    }
+function processOptions(options, defaults) {
+  const processedOptions = {}
 
-    function convertPasses( stages ) {
+  objects.extend(processedOptions, options)
+  objects.extend(processedOptions, defaults)
 
-        return objects.map( stages, convertStage );
-
-    }
-
-    return convertPasses;
-
-} )();
-
-function processOptions( options, defaults ) {
-
-    const processedOptions = {};
-
-    objects.extend( processedOptions, options );
-    objects.extend( processedOptions, defaults );
-
-    return processedOptions;
-
+  return processedOptions
 }
 
 module.exports = {
+  find: arrays.find,
+  findIndex: arrays.findIndex,
 
-    find: arrays.find,
-    findIndex: arrays.findIndex,
+  stringEscape: js.stringEscape,
+  regexpEscape: js.regexpEscape,
+  reservedWords: js.reservedWords,
 
-    stringEscape: js.stringEscape,
-    regexpEscape: js.regexpEscape,
-    reservedWords: js.reservedWords,
+  clone: objects.clone,
+  each: objects.each,
+  extend: objects.extend,
+  map: objects.map,
+  values: objects.values,
+  enforceFastProperties: objects.enforceFastProperties,
 
-    clone: objects.clone,
-    each: objects.each,
-    extend: objects.extend,
-    map: objects.map,
-    values: objects.values,
-    enforceFastProperties: objects.enforceFastProperties,
+  evalModule: vm.evalModule,
 
-    evalModule: vm.evalModule,
-
-    convertPasses,
-    processOptions,
-    noop() { },
-
-};
+  convertPasses,
+  processOptions,
+  noop() {},
+}

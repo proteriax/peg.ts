@@ -1,31 +1,20 @@
-"use strict";
+"use strict"
 
 // Checks that all rules are used.
-function reportUnusedRules( ast, session, options ) {
+function reportUnusedRules(ast, session, options) {
+  const used = {}
+  function yes(node) {
+    used[node.name || node] = true
+  }
 
-    const used = {};
-    function yes( node ) {
+  options.allowedStartRules.forEach(yes)
+  session.buildVisitor({ rule_ref: yes })(ast)
 
-        used[ node.name || node ] = true;
-
+  ast.rules.forEach(rule => {
+    if (used[rule.name] !== true) {
+      session.warn(`Rule "${rule.name}" is not referenced.`, rule.location)
     }
-
-    options.allowedStartRules.forEach( yes );
-    session.buildVisitor( { rule_ref: yes } )( ast );
-
-    ast.rules.forEach( rule => {
-
-        if ( used[ rule.name ] !== true ) {
-
-            session.warn(
-                `Rule "${ rule.name }" is not referenced.`,
-                rule.location,
-            );
-
-        }
-
-    } );
-
+  })
 }
 
-module.exports = reportUnusedRules;
+module.exports = reportUnusedRules

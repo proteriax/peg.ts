@@ -1,4 +1,4 @@
-"use strict";
+"use strict"
 
 // Reports left recursion in the grammar, which prevents infinite recursion in
 // the generated parser.
@@ -10,52 +10,40 @@
 //
 // In general, if a rule reference can be reached without consuming any input,
 // it can lead to left recursion.
-function reportInfiniteRecursion( ast, session ) {
+function reportInfiniteRecursion(ast, session) {
+  const visitedRules = []
 
-    const visitedRules = [];
+  const check = session.buildVisitor({
+    rule(node) {
+      visitedRules.push(node.name)
+      check(node.expression)
+      visitedRules.pop(node.name)
+    },
 
-    const check = session.buildVisitor( {
-        rule( node ) {
+    sequence(node) {
+      node.elements.every(element => {
+        check(element)
 
-            visitedRules.push( node.name );
-            check( node.expression );
-            visitedRules.pop( node.name );
+        return !ast.alwaysConsumesOnSuccess(element)
+      })
+    },
 
-        },
+    rule_ref(node) {
+      if (visitedRules.indexOf(node.name) !== -1) {
+        visitedRules.push(node.name)
+        const rulePath = visitedRules.join(" -> ")
 
-        sequence( node ) {
+        session.error(
+          `Possible infinite loop when parsing (left recursion: ${rulePath}).`,
+          node.location
+        )
+      }
 
-            node.elements.every( element => {
+      check(ast.findRule(node.name))
+    },
+  })
 
-                check( element );
-
-                return ! ast.alwaysConsumesOnSuccess( element );
-
-            } );
-
-        },
-
-        rule_ref( node ) {
-
-            if ( visitedRules.indexOf( node.name ) !== -1 ) {
-
-                visitedRules.push( node.name );
-                const rulePath = visitedRules.join( " -> " );
-
-                session.error(
-                    `Possible infinite loop when parsing (left recursion: ${ rulePath }).`,
-                    node.location,
-                );
-
-            }
-
-            check( ast.findRule( node.name ) );
-
-        },
-    } );
-
-    check( ast );
-
+  check(ast)
 }
 
-module.exports = reportInfiniteRecursion;
+module.exports = reportInfiniteRecursion

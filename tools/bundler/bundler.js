@@ -1,5 +1,5 @@
 #!/usr/bin/env node
 
-"use strict";
+"use strict"
 
-require( "webpack-nano/bin/wp" );
+require("webpack-nano/bin/wp")

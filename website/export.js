@@ -1,35 +1,26 @@
-"use strict";
+"use strict"
 
-const { bluebird, fs, expand, refresh } = require( "./export.utils" );
+const { bluebird, fs, expand, refresh } = require("./export.utils")
 
-( async () => {
+;(async () => {
+  // Copy static content
+  await fs.copy(expand("website/assets"), expand("public"))
 
-    // Copy static content
-    await fs.copy( expand( "website/assets" ), expand( "public" ) );
+  // Generate pages
+  await bluebird.each(fs.glob("pages/**/*.js", __dirname), async input => {
+    const output =
+      input.replace(expand("website/pages"), expand("public")).slice(0, -3) + ".html"
 
-    // Generate pages
-    await bluebird.each( fs.glob( "pages/**/*.js", __dirname ), async input => {
+    await refresh(input, output, async () => {
+      let page = require(input)
 
-        const output = input
-            .replace( expand( "website/pages" ), expand( "public" ) )
-            .slice( 0, -3 ) + ".html";
+      if (typeof page === "function") page = await bluebird.method(page)()
 
-        await refresh( input, output, async () => {
-
-            let page = require( input );
-
-            if ( typeof page === "function" ) page = await bluebird.method( page )();
-
-            await fs.ensureDir( fs.dirname( output ) );
-            await fs.writeFile( output, page.trim() );
-
-        } );
-
-    } );
-
-} )().catch( err => {
-
-    console.trace( err );
-    process.exit( 1 );
-
-} );
+      await fs.ensureDir(fs.dirname(output))
+      await fs.writeFile(output, page.trim())
+    })
+  })
+})().catch(err => {
+  console.trace(err)
+  process.exit(1)
+})

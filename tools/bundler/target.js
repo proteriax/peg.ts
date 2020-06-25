@@ -1,8 +1,8 @@
-"use strict";
+"use strict"
 
-const dedent = require( "dedent" );
-const path = require( "path" );
-const webpack = require( "webpack" );
+const dedent = require("dedent")
+const path = require("path")
+const webpack = require("webpack")
 
 /**
  * A wrapper function to help create a configuration for Webpack.
@@ -11,62 +11,56 @@ const webpack = require( "webpack" );
  * @returns {{}}
  */
 
-function target( { banner, entry, library, minimize, name, output } ) {
+function target({ banner, entry, library, minimize, name, output }) {
+  const cwd = process.cwd()
+  const plugins = []
 
-    const cwd = process.cwd();
-    const plugins = [];
+  if (typeof banner === "string") {
+    banner = dedent(banner)
 
-    if ( typeof banner === "string" ) {
+    plugins.push(new webpack.BannerPlugin({ banner, raw: true }))
+  }
 
-        banner = dedent( banner );
-
-        plugins.push( new webpack.BannerPlugin( { banner, raw: true } ) );
-
-    }
-
-    return {
-
-        name,
-        mode: process.argv.includes( "--mode=development" ) ? "development" : "production",
-        entry,
-        output: {
-            path: path.dirname( path.resolve( cwd, output ) ),
-            filename: path.basename( output ),
-            library,
-            libraryTarget: "umd",
-            umdNamedDefine: true,
-            sourcePrefix: "  ",
-            globalObject: "typeof self !== 'undefined' ? self : window",
+  return {
+    name,
+    mode: process.argv.includes("--mode=development") ? "development" : "production",
+    entry,
+    output: {
+      path: path.dirname(path.resolve(cwd, output)),
+      filename: path.basename(output),
+      library,
+      libraryTarget: "umd",
+      umdNamedDefine: true,
+      sourcePrefix: "  ",
+      globalObject: "typeof self !== 'undefined' ? self : window",
+    },
+    optimization: {
+      minimize: minimize != null ? !!minimize : output.endsWith(".min.js"),
+    },
+    performance: {
+      hints: false,
+    },
+    resolve: {
+      extensions: [".ts", ".js"],
+    },
+    module: {
+      rules: [
+        {
+          test: /\.m?js$/,
+          // exclude: /node_modules/,
+          use: {
+            loader: require.resolve("babel-loader"),
+            options: require("./babel.config.js"),
+          },
         },
-        optimization: {
-            minimize: minimize != null ? !! minimize : output.endsWith( ".min.js" ),
+        {
+          test: /\.ts$/,
+          loader: "ts-loader",
         },
-        performance: {
-            hints: false,
-        },
-        resolve: {
-            extensions: [ ".ts", ".js" ],
-        },
-        module: {
-            rules: [
-                {
-                    test: /\.m?js$/,
-                    // exclude: /node_modules/,
-                    use: {
-                        loader: require.resolve( "babel-loader" ),
-                        options: require( "./babel.config.js" ),
-                    },
-                },
-                {
-                    test: /\.ts$/,
-                    loader: "ts-loader",
-                },
-            ],
-        },
-        plugins,
-
-    };
-
+      ],
+    },
+    plugins,
+  }
 }
 
-module.exports = target;
+module.exports = target

@@ -31,43 +31,34 @@
 
     // Populate `RESERVED_WORDS` using the optional option `reservedWords`
     const reservedWords = options.reservedWords || util.reservedWords;
-    if ( Array.isArray( reservedWords ) ) reservedWords.forEach( word => {
-
-        RESERVED_WORDS[ word ] = true;
-
-    } );
+    if (Array.isArray(reservedWords)) {
+      reservedWords.forEach(word => {
+        RESERVED_WORDS[word] = true;
+      });
+    }
 
     // Helper to construct a new AST Node
-    function createNode( type, details ) {
+    function createNode(type, details) {
+      const node = new ast.Node(type, location());
+      if (details === null) return node;
 
-        const node = new ast.Node( type, location() );
-        if ( details === null ) return node;
-
-        util.extend( node, details );
-        return util.enforceFastProperties( node );
-
+      util.extend(node, details);
+      return util.enforceFastProperties(node);
     }
 
     // Used by `addComment` to store comments for the Grammar AST
     const comments = options.extractComments ? {} : null;
 
     // Helper that collects all the comments to pass to the Grammar AST
-    function addComment( text, multiline ) {
-
-        if ( options.extractComments ) {
-
-            const loc = location();
-
-            comments[ loc.start.offset ] = {
-                text: text,
-                multiline: multiline,
-                location: loc,
-            };
-
-        }
-
-        return text;
-
+    function addComment(text, multiline) {
+      if (options.extractComments) {
+        comments[loc.start.offset] = {
+          text,
+          multiline,
+          location: location(),
+        };
+      }
+      return text;
     }
 
 }
@@ -76,29 +67,25 @@
 
 Grammar
   = __ initializer:(@Initializer __)? rules:(@Rule __)+ {
-
         return new ast.Grammar( initializer, rules, comments, location() );
-
     }
 
 Initializer
   = code:CodeBlock EOS {
-
         return createNode( "initializer", { code } );
-
     }
 
 Rule
   = name:Identifier __ displayName:(@StringLiteral __)? "=" __ expression:Expression EOS {
 
-        if ( displayName )
-
-            expression = createNode( "named", {
+        if (displayName) {
+            expression = createNode("named", {
                 name: displayName,
                 expression: expression,
-            } );
+            });
+        }
 
-        return createNode( "rule", { name, expression } );
+        return createNode("rule", { name, expression });
 
     }
 
@@ -108,51 +95,47 @@ Expression
 ChoiceExpression
   = head:ActionExpression tail:(__ "/" __ @ActionExpression)* {
 
-        if ( tail.length === 0 ) return head;
+        if (tail.length === 0) return head;
 
-        return createNode( "choice", {
-            alternatives: [ head ].concat( tail ),
-        } );
+        return createNode("choice", {
+            alternatives: [head].concat(tail),
+        });
 
     }
 
 ActionExpression
   = expression:SequenceExpression code:(__ @CodeBlock)? {
 
-        if ( code === null ) return expression;
+        if (code === null) return expression;
 
-        return createNode( "action", { expression, code } );
+        return createNode("action", { expression, code });
 
     }
 
 SequenceExpression
   = head:LabeledExpression tail:(__ @LabeledExpression)* {
 
-        let elements = [ head ];
+        let elements = [head];
 
-        if ( tail.length === 0 ) {
-
-            if ( head.type !== "labeled" || ! head.pick ) return head;
-
+        if (tail.length === 0) {
+            if (head.type !== "labeled" || !head.pick) return head;
         } else {
-
-            elements = elements.concat( tail );
-
+            elements = elements.concat(tail);
         }
 
-        return createNode( "sequence", { elements } );
+        return createNode("sequence", { elements });
 
     }
 
 LabeledExpression
   = "@" label:LabelIdentifier? __ expression:PrefixedExpression {
 
-        return createNode( "labeled", { pick, label, expression } );
+        return createNode("labeled", { pick, label, expression });
 
     }
   / label:LabelIdentifier __ expression:PrefixedExpression {
 
-        return createNode( "labeled", { label, expression } );
+        return createNode("labeled", { label, expression });
 
     }
   / PrefixedExpression
@@ -160,16 +143,16 @@ LabeledExpression
 LabelIdentifier
   = name:Identifier __ ":" {
 
-        if ( RESERVED_WORDS[ name ] !== true ) return name;
+        if (RESERVED_WORDS[name] !== true) return name;
 
-        error( `Label can't be a reserved word "${ name }".`, location() );
+        error( `Label can't be a reserved word "${ name }".`, location());
 
     }
 
 PrefixedExpression
   = operator:PrefixedOperator __ expression:SuffixedExpression {
 
-        return createNode( operator, { expression } );
+        return createNode(operator, { expression });
 
     }
   / SuffixedExpression
@@ -182,7 +165,7 @@ PrefixedOperator
 SuffixedExpression
   = expression:PrimaryExpression __ operator:SuffixedOperator {
 
-        return createNode( operator, { expression } );
+        return createNode(operator, { expression });
 
     }
   / PrimaryExpression
@@ -203,24 +186,24 @@ PrimaryExpression
         // The purpose of the "group" AST node is just to isolate label scope. We
         // don't need to put it around nodes that can't contain any labels or
         // nodes that already isolate label scope themselves.
-        if ( e.type !== "labeled" && e.type !== "sequence" ) return e;
+        if (e.type !== "labeled" && e.type !== "sequence") return e;
 
         // This leaves us with "labeled" and "sequence".
-        return createNode( "group", { expression: e } );
+        return createNode("group", { expression: e });
 
     }
 
 RuleReferenceExpression
   = name:Identifier !(__ (StringLiteral __)? "=") {
 
-        return createNode( "rule_ref", { name } );
+        return createNode("rule_ref", { name });
 
     }
 
 SemanticPredicateExpression
   = operator:SemanticPredicateOperator __ code:CodeBlock {
 
-        return createNode( operator, { code } );
+        return createNode(operator, { code });
 
     }
 
@@ -273,7 +256,7 @@ MultiLineCommentNoLineTerminator
 SingleLineComment
   = "//" comment:$(!LineTerminator SourceCharacter)* {
 
-        return addComment( comment, false );
+        return addComment(comment, false);
 
   }
 
