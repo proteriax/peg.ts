@@ -1,6 +1,6 @@
 "use strict"
 
-const util = require("../../util")
+import util from "../../util";
 
 // Generates bytecode.
 //
@@ -229,7 +229,7 @@ function generateBytecode(ast, session) {
   }
 
   function addFunctionConst(predicate, params, code) {
-    const func = { predicate: predicate, params: params, body: code }
+    const func = { predicate, params, body: code }
     const pattern = JSON.stringify(func)
     const index = util.findIndex(functions, f => JSON.stringify(f) === pattern)
     return index === -1 ? functions.push(func) - 1 : index
@@ -368,7 +368,7 @@ function generateBytecode(ast, session) {
         node.expression.type !== "sequence" || node.expression.elements.length === 0
       const expressionCode = generate(node.expression, {
         sp: context.sp + (emitCall ? 1 : 0),
-        env: env,
+        env,
         action: node,
         reportFailures: context.reportFailures,
       })
@@ -481,10 +481,10 @@ function generateBytecode(ast, session) {
 
       return generate(node.expression, {
         sp: context.sp,
-        env: env,
+        env,
         action: null,
         reportFailures: context.reportFailures,
-      })
+      });
     },
 
     text(node, context) {
@@ -665,4 +665,4 @@ function generateBytecode(ast, session) {
   generate(ast)
 }
 
-module.exports = generateBytecode
+export default generateBytecode;

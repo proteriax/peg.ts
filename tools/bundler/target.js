@@ -1,8 +1,8 @@
 "use strict"
 
-const dedent = require("dedent")
-const path = require("path")
-const webpack = require("webpack")
+import dedent from "dedent";
+import path from "path";
+import webpack from "webpack";
 
 /**
  * A wrapper function to help create a configuration for Webpack.
@@ -63,4 +63,4 @@ function target({ banner, entry, library, minimize, name, output }) {
   }
 }
 
-module.exports = target
+export default target;

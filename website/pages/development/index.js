@@ -1,8 +1,8 @@
 "use strict";
 
-const template = require( "../../templates/article" );
+import template from "../../templates/article";
 
-module.exports = template( {
+export default template( {
     title: "Development",
     content: `
 

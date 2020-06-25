@@ -1,6 +1,6 @@
 "use strict"
 
-module.exports = {
+export default {
   comments: false,
   compact: false,
   presets: [
@@ -14,4 +14,4 @@ module.exports = {
       },
     ],
   ],
-}
+};

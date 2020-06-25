@@ -1,8 +1,8 @@
 "use strict";
 
-const fs = require( "fs" );
-const path = require( "path" );
-const peg = require( "../lib/peg" );
+import fs from "fs";
+import path from "path";
+import peg from "../lib/peg";
 const util = peg.util;
 
 // Options
@@ -47,7 +47,7 @@ function addExtraOptions( config ) {
         } catch ( e ) {
 
             if ( ! ( e instanceof SyntaxError ) ) throw e;
-            abort( "Error parsing JSON: " + e.message );
+            abort( `Error parsing JSON: ${e.message}` );
 
         }
 
@@ -105,7 +105,7 @@ function formatChoicesList( list ) {
 
     return list.length === 0
         ? lastOption
-        : list.join( ", " ) + " or " + lastOption;
+        : `${list.join( ", " )} or ${lastOption}`;
 
 }
 
@@ -116,7 +116,7 @@ function updateList( list, string ) {
         .forEach( entry => {
 
             entry = entry.trim();
-            if ( list.indexOf( entry ) === -1 ) {
+            if ( !list.includes(entry) ) {
 
                 list.push( entry );
 
@@ -144,8 +144,8 @@ function nextArg( option ) {
 // Parse Arguments
 
 while ( args.length > 0 ) {
-
-    let config, mod;
+    let config;
+    let mod;
     let argument = args.shift();
 
     if ( argument.indexOf( "-" ) === 0 && argument.indexOf( "=" ) > 1 ) {
@@ -224,7 +224,7 @@ while ( args.length > 0 ) {
         case "-f":
         case "--format":
             argument = nextArg( "-f/--format" );
-            if ( MODULE_FORMATS.indexOf( argument ) === -1 ) {
+            if ( !MODULE_FORMATS.includes(argument) ) {
 
                 abort( `Module format must be either ${ formatChoicesList( MODULE_FORMATS ) }.` );
 
@@ -241,7 +241,7 @@ while ( args.length > 0 ) {
         case "-O":
         case "--optimize":
             argument = nextArg( "-O/--optimize" );
-            if ( OPTIMIZATION_GOALS.indexOf( argument ) === -1 ) {
+            if ( !OPTIMIZATION_GOALS.includes(argument) ) {
 
                 abort( `Optimization goal must be either ${ formatChoicesList( OPTIMIZATION_GOALS ) }.` );
 
@@ -289,7 +289,7 @@ while ( args.length > 0 ) {
 
         case "-v":
         case "--version":
-            console.log( "PEG.js v" + peg.VERSION );
+            console.log( `PEG.js v${peg.VERSION}` );
             process.exit();
             break;
 
@@ -302,14 +302,13 @@ while ( args.length > 0 ) {
             inputFile = argument;
 
     }
-
 }
 
 // Validation and defaults
 
 if ( Object.keys( options.dependencies ).length > 0 ) {
 
-    if ( DEPENDENCY_FORMATS.indexOf( options.format ) === -1 ) {
+    if ( !DEPENDENCY_FORMATS.includes(options.format) ) {
 
         abort( `Can't use the -d/--dependency option with the "${ options.format }" module format.` );
 
@@ -319,7 +318,7 @@ if ( Object.keys( options.dependencies ).length > 0 ) {
 
 if ( options.exportVar !== null ) {
 
-    if ( EXPORT_VAR_FORMATS.indexOf( options.format ) === -1 ) {
+    if ( !EXPORT_VAR_FORMATS.includes(options.format) ) {
 
         abort( `Can't use the -e/--export-var option with the "${ options.format }" module format.` );
 
@@ -334,9 +333,8 @@ if ( outputFile === null ) {
     if ( inputFile === "-" ) outputFile = "-";
     else if ( inputFile ) {
 
-        outputFile = inputFile
-            .substr( 0, inputFile.length - path.extname( inputFile ).length )
-            + ".js";
+        outputFile = `${inputFile
+    .substr( 0, inputFile.length - path.extname( inputFile ).length )}.js`;
 
     }
 
@@ -347,4 +345,4 @@ if ( outputFile === null ) {
 options.inputFile = inputFile;
 options.outputFile = outputFile;
 
-module.exports = options;
+export default options;

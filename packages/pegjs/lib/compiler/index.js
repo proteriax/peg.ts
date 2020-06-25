@@ -1,23 +1,23 @@
 "use strict";
 
-const calcReportFailures = require( "./passes/calc-report-failures" );
-const generateBytecode = require( "./passes/generate-bytecode" );
-const generateJS = require( "./passes/generate-js" );
-const removeProxyRules = require( "./passes/remove-proxy-rules" );
-const reportDuplicateLabels = require( "./passes/report-duplicate-labels" );
-const reportDuplicateRules = require( "./passes/report-duplicate-rules" );
-const reportUnusedRules = require( "./passes/report-unused-rules" );
-const reportInfiniteRecursion = require( "./passes/report-infinite-recursion" );
-const reportInfiniteRepetition = require( "./passes/report-infinite-repetition" );
-const reportUndefinedRules = require( "./passes/report-undefined-rules" );
-const inferenceMatchResult = require( "./passes/inference-match-result" );
-const reportIncorrectPlucking = require( "./passes/report-incorrect-plucking" );
-const Session = require( "./session" );
-const util = require( "../util" );
+import calcReportFailures from "./passes/calc-report-failures";
+import generateBytecode from "./passes/generate-bytecode";
+import generateJS from "./passes/generate-js";
+import removeProxyRules from "./passes/remove-proxy-rules";
+import reportDuplicateLabels from "./passes/report-duplicate-labels";
+import reportDuplicateRules from "./passes/report-duplicate-rules";
+import reportUnusedRules from "./passes/report-unused-rules";
+import reportInfiniteRecursion from "./passes/report-infinite-recursion";
+import reportInfiniteRepetition from "./passes/report-infinite-repetition";
+import reportUndefinedRules from "./passes/report-undefined-rules";
+import inferenceMatchResult from "./passes/inference-match-result";
+import reportIncorrectPlucking from "./passes/report-incorrect-plucking";
+import Session from "./session";
+import util from "../util";
 
 const compiler = {
 
-    Session: Session,
+    Session,
 
     // Compiler passes.
     //
@@ -26,22 +26,22 @@ const compiler = {
     // |peg.GrammarError|.
     passes: {
         check: {
-            reportUndefinedRules: reportUndefinedRules,
-            reportDuplicateRules: reportDuplicateRules,
-            reportUnusedRules: reportUnusedRules,
-            reportDuplicateLabels: reportDuplicateLabels,
-            reportInfiniteRecursion: reportInfiniteRecursion,
-            reportInfiniteRepetition: reportInfiniteRepetition,
-            reportIncorrectPlucking: reportIncorrectPlucking,
+            reportUndefinedRules,
+            reportDuplicateRules,
+            reportUnusedRules,
+            reportDuplicateLabels,
+            reportInfiniteRecursion,
+            reportInfiniteRepetition,
+            reportIncorrectPlucking,
         },
         transform: {
-            removeProxyRules: removeProxyRules,
+            removeProxyRules,
         },
         generate: {
-            calcReportFailures: calcReportFailures,
-            inferenceMatchResult: inferenceMatchResult,
-            generateBytecode: generateBytecode,
-            generateJS: generateJS,
+            calcReportFailures,
+            inferenceMatchResult,
+            generateBytecode,
+            generateJS,
         },
     },
 
@@ -95,4 +95,4 @@ const compiler = {
 
 };
 
-module.exports = compiler;
+export default compiler;

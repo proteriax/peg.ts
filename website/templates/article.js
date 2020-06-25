@@ -1,8 +1,8 @@
 "use strict"
 
-const template = require("./html")
+import template from "./html";
 
-module.exports = ({ content, ga, layout, title } = {}) => {
+export default ({ content, ga, layout, title } = {}) => {
   content = `
 
         <div id="content">
@@ -14,4 +14,4 @@ module.exports = ({ content, ga, layout, title } = {}) => {
     `
 
   return template({ content, ga, layout, title })
-}
+};

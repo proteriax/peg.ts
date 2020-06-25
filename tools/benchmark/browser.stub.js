@@ -2,8 +2,9 @@
 
 /* eslint-env browser, jquery */
 
-const Runner = require("./runner.js")
-const benchmarks = require("./benchmarks.js")
+import Runner from "./runner.js";
+
+import benchmarks from "./benchmarks.js";
 
 let BRANCH = location.hash.match(/branch=([^&]*)/i)
 BRANCH = BRANCH ? BRANCH[1] : "master"
@@ -20,7 +21,7 @@ $("#run").click(() => {
     resultsTable.append(`
             <tr class='${klass}'>
                 <td class='title'>
-                    ${url !== null ? "<a href='" + url + "'>" : ""}
+                    ${url !== null ? `<a href='${url}'>` : ""}
                     ${title}
                     ${url !== null ? "</a>" : ""}
                 </td>
@@ -106,7 +107,7 @@ $("#run").click(() => {
     benchmarkFinish(benchmark, inputSize, parseTime) {
       appendResult(
         "benchmark-total",
-        benchmark.title + " total",
+        `${benchmark.title} total`,
         null,
         inputSize,
         parseTime

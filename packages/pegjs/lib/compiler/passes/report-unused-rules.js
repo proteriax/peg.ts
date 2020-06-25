@@ -17,4 +17,4 @@ function reportUnusedRules(ast, session, options) {
   })
 }
 
-module.exports = reportUnusedRules
+export default reportUnusedRules;

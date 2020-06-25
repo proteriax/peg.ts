@@ -26,4 +26,4 @@ function reportInfiniteRepetition(ast, session) {
   check(ast)
 }
 
-module.exports = reportInfiniteRepetition
+export default reportInfiniteRepetition;

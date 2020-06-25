@@ -1,6 +1,6 @@
 "use strict"
 
-const util = require("../util")
+import util from "../util";
 
 // Abstract syntax tree visitor for PEG.js
 class ASTVisitor {
@@ -19,7 +19,7 @@ class ASTVisitor {
   }
 }
 
-module.exports = {
+export default {
   ASTVisitor,
 
   // Simple AST node visitor builder for PEG.js
@@ -29,7 +29,7 @@ module.exports = {
     visitor = util.enforceFastProperties(visitor)
     return visitor.visit.bind(visitor)
   },
-}
+};
 
 // Helper's to create visitor's for use with the ASTVisitor class
 const on = (ASTVisitor.on = {

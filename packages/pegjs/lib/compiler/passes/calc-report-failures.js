@@ -48,4 +48,4 @@ function calcReportFailures(ast, session, options) {
   }
 }
 
-module.exports = calcReportFailures
+export default calcReportFailures;

@@ -2,8 +2,8 @@
 
 "use strict"
 
-const util = require("../../util")
-const VERSION = require("../../../package.json").version
+import util from "../../util";
+import {version as VERSION} from "../../../package.json";
 
 // Generates parser JavaScript code.
 function generateJS(ast, session, options) {
@@ -24,10 +24,10 @@ function generateJS(ast, session, options) {
     return code.replace(lineMatchRE, "          $1")
   }
 
-  const l = i => "peg$c" + i // |literals[i]| of the abstract machine
-  const r = i => "peg$r" + i // |classes[i]| of the abstract machine
-  const e = i => "peg$e" + i // |expectations[i]| of the abstract machine
-  const f = i => "peg$f" + i // |actions[i]| of the abstract machine
+  const l = i => `peg$c${i}` // |literals[i]| of the abstract machine
+  const r = i => `peg$r${i}` // |classes[i]| of the abstract machine
+  const e = i => `peg$e${i}` // |expectations[i]| of the abstract machine
+  const f = i => `peg$f${i}` // |actions[i]| of the abstract machine
 
   function generateTables() {
     function buildLiteral(literal) {
@@ -35,19 +35,13 @@ function generateJS(ast, session, options) {
     }
 
     function buildRegexp(cls) {
-      return (
-        "/^[" +
-        (cls.inverted ? "^" : "") +
-        cls.value
-          .map(part =>
-            Array.isArray(part)
-              ? util.regexpEscape(part[0]) + "-" + util.regexpEscape(part[1])
-              : util.regexpEscape(part)
-          )
-          .join("") +
-        "]/" +
-        (cls.ignoreCase ? "i" : "")
-      )
+      return `/^[${cls.inverted ? "^" : ""}${cls.value
+  .map(part =>
+    Array.isArray(part)
+      ? `${util.regexpEscape(part[0])}-${util.regexpEscape(part[1])}`
+      : util.regexpEscape(part)
+  )
+  .join("")}]/${cls.ignoreCase ? "i" : ""}`;
     }
 
     function buildExpectation(e) {
@@ -56,13 +50,7 @@ function generateJS(ast, session, options) {
           return `peg$otherExpectation("${util.stringEscape(e.value)}")`
 
         case "literal":
-          return (
-            'peg$literalExpectation("' +
-            util.stringEscape(e.value) +
-            '", ' +
-            e.ignoreCase +
-            ")"
-          )
+          return `peg$literalExpectation("${util.stringEscape(e.value)}", ${e.ignoreCase})`;
 
         case "class": {
           const parts = e.value.map(part =>
@@ -71,15 +59,7 @@ function generateJS(ast, session, options) {
               : `"${util.stringEscape(part)}"`
           )
 
-          return (
-            "peg$classExpectation([" +
-            parts.join(", ") +
-            "], " +
-            e.inverted +
-            ", " +
-            e.ignoreCase +
-            ")"
-          )
+          return `peg$classExpectation([${parts.join(", ")}], ${e.inverted}, ${e.ignoreCase})`;
         }
 
         case "any":
@@ -126,20 +106,20 @@ function generateJS(ast, session, options) {
     }
 
     return ast.literals
-      .map((c, i) => "var " + l(i) + " = " + buildLiteral(c) + ";")
+      .map((c, i) => `var ${l(i)} = ${buildLiteral(c)};`)
       .concat(
         "",
-        ast.classes.map((c, i) => "var " + r(i) + " = " + buildRegexp(c) + ";")
+        ast.classes.map((c, i) => `var ${r(i)} = ${buildRegexp(c)};`)
       )
       .concat(
         "",
-        ast.expectations.map((c, i) => "var " + e(i) + " = " + buildExpectation(c) + ";")
+        ast.expectations.map((c, i) => `var ${e(i)} = ${buildExpectation(c)};`)
       )
       .concat(
         "",
-        ast.functions.map((c, i) => "var " + f(i) + " = " + buildFunc(c) + ";")
+        ast.functions.map((c, i) => `var ${f(i)} = ${buildFunc(c)};`)
       )
-      .join("\n")
+      .join("\n");
   }
 
   function generateRuleHeader(ruleNameCode, ruleIndexCode) {
@@ -160,7 +140,7 @@ function generateJS(ast, session, options) {
         [
           "peg$tracer.trace({",
           '  type: "rule.enter",',
-          "  rule: " + ruleNameCode + ",",
+          `  rule: ${ruleNameCode},`,
           "  location: peg$computeLocation(startPos, startPos)",
           "});",
           "",
@@ -171,7 +151,7 @@ function generateJS(ast, session, options) {
     if (options.cache) {
       parts.push(
         [
-          "var key = peg$currPos * " + ast.rules.length + " + " + ruleIndexCode + ";",
+          `var key = peg$currPos * ${ast.rules.length} + ${ruleIndexCode};`,
           "var cached = peg$resultsCache[key];",
           "var rule$expectations = [];",
           "",
@@ -197,14 +177,14 @@ function generateJS(ast, session, options) {
             "if (cached.result !== peg$FAILED) {",
             "  peg$tracer.trace({",
             '    type: "rule.match",',
-            "    rule: " + ruleNameCode + ",",
+            `    rule: ${ruleNameCode},`,
             "    result: cached.result,",
             "    location: peg$computeLocation(startPos, peg$currPos)",
             "  });",
             "} else {",
             "  peg$tracer.trace({",
             '    type: "rule.fail",',
-            "    rule: " + ruleNameCode + ",",
+            `    rule: ${ruleNameCode},`,
             "    location: peg$computeLocation(startPos, startPos)",
             "  });",
             "}",
@@ -228,7 +208,7 @@ function generateJS(ast, session, options) {
           "",
           "peg$resultsCache[key] = {",
           "  nextPos: peg$currPos,",
-          "  result: " + resultCode + ",",
+          `  result: ${resultCode},`,
           "  expectations: rule$expectations",
           "};",
         ].join("\n")
@@ -239,17 +219,17 @@ function generateJS(ast, session, options) {
       parts.push(
         [
           "",
-          "if (" + resultCode + " !== peg$FAILED) {",
+          `if (${resultCode} !== peg$FAILED) {`,
           "  peg$tracer.trace({",
           '    type: "rule.match",',
-          "    rule: " + ruleNameCode + ",",
-          "    result: " + resultCode + ",",
+          `    rule: ${ruleNameCode},`,
+          `    result: ${resultCode},`,
           "    location: peg$computeLocation(startPos, peg$currPos)",
           "  });",
           "} else {",
           "  peg$tracer.trace({",
           '    type: "rule.fail",',
-          "    rule: " + ruleNameCode + ",",
+          `    rule: ${ruleNameCode},`,
           "    location: peg$computeLocation(startPos, startPos)",
           "  });",
           "}",
@@ -257,7 +237,7 @@ function generateJS(ast, session, options) {
       )
     }
 
-    parts.push(["", "return " + resultCode + ";"].join("\n"))
+    parts.push(["", `return ${resultCode};`].join("\n"))
 
     return parts.join("\n")
   }
@@ -267,68 +247,50 @@ function generateJS(ast, session, options) {
 
     function generateCondition(cond, argsLength) {
       const baseLength = argsLength + 3
-      const thenLengthCode = "bc[ip + " + (baseLength - 2) + "]"
-      const elseLengthCode = "bc[ip + " + (baseLength - 1) + "]"
+      const thenLengthCode = `bc[ip + ${baseLength - 2}]`
+      const elseLengthCode = `bc[ip + ${baseLength - 1}]`
 
       return [
         "ends.push(end);",
-        "ips.push(ip + " +
-          baseLength +
-          " + " +
-          thenLengthCode +
-          " + " +
-          elseLengthCode +
-          ");",
+        `ips.push(ip + ${baseLength} + ${thenLengthCode} + ${elseLengthCode});`,
         "",
-        "if (" + cond + ") {",
-        "  end = ip + " + baseLength + " + " + thenLengthCode + ";",
-        "  ip += " + baseLength + ";",
+        `if (${cond}) {`,
+        `  end = ip + ${baseLength} + ${thenLengthCode};`,
+        `  ip += ${baseLength};`,
         "} else {",
-        "  end = ip + " +
-          baseLength +
-          " + " +
-          thenLengthCode +
-          " + " +
-          elseLengthCode +
-          ";",
-        "  ip += " + baseLength + " + " + thenLengthCode + ";",
+        `  end = ip + ${baseLength} + ${thenLengthCode} + ${elseLengthCode};`,
+        `  ip += ${baseLength} + ${thenLengthCode};`,
         "}",
         "",
         "break;",
-      ].join("\n")
+      ].join("\n");
     }
 
     function generateLoop(cond) {
       const baseLength = 2
-      const bodyLengthCode = "bc[ip + " + (baseLength - 1) + "]"
+      const bodyLengthCode = `bc[ip + ${baseLength - 1}]`
 
       return [
-        "if (" + cond + ") {",
+        `if (${cond}) {`,
         "  ends.push(end);",
         "  ips.push(ip);",
         "",
-        "  end = ip + " + baseLength + " + " + bodyLengthCode + ";",
-        "  ip += " + baseLength + ";",
+        `  end = ip + ${baseLength} + ${bodyLengthCode};`,
+        `  ip += ${baseLength};`,
         "} else {",
-        "  ip += " + baseLength + " + " + bodyLengthCode + ";",
+        `  ip += ${baseLength} + ${bodyLengthCode};`,
         "}",
         "",
         "break;",
-      ].join("\n")
+      ].join("\n");
     }
 
     function generateCall() {
       const baseLength = 4
-      const paramsLengthCode = "bc[ip + " + (baseLength - 1) + "]"
+      const paramsLengthCode = `bc[ip + ${baseLength - 1}]`
 
       return [
-        "params = bc.slice(ip + " +
-          baseLength +
-          ", ip + " +
-          baseLength +
-          " + " +
-          paramsLengthCode +
-          ")",
+        `params = bc.slice(ip + ${baseLength}, ip + ${baseLength} + ${paramsLengthCode})`,
         "  .map(function(p) { return stack[stack.length - 1 - p]; });",
         "",
         "stack.splice(",
@@ -337,9 +299,9 @@ function generateJS(ast, session, options) {
         "  peg$functions[bc[ip + 1]].apply(null, params)",
         ");",
         "",
-        "ip += " + baseLength + " + " + paramsLengthCode + ";",
+        `ip += ${baseLength} + ${paramsLengthCode};`,
         "break;",
-      ].join("\n")
+      ].join("\n");
     }
 
     parts.push(
@@ -391,72 +353,72 @@ function generateJS(ast, session, options) {
         "  while (true) {",
         "    while (ip < end) {",
         "      switch (bc[ip]) {",
-        "        case " + op.PUSH_EMPTY_STRING + ":", // PUSH_EMPTY_STRING
+        `        case ${op.PUSH_EMPTY_STRING}:`, // PUSH_EMPTY_STRING
         "          stack.push('');",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.PUSH_UNDEFINED + ":", // PUSH_UNDEFINED
+        `        case ${op.PUSH_UNDEFINED}:`, // PUSH_UNDEFINED
         "          stack.push(undefined);",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.PUSH_NULL + ":", // PUSH_NULL
+        `        case ${op.PUSH_NULL}:`, // PUSH_NULL
         "          stack.push(null);",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.PUSH_FAILED + ":", // PUSH_FAILED
+        `        case ${op.PUSH_FAILED}:`, // PUSH_FAILED
         "          stack.push(peg$FAILED);",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.PUSH_EMPTY_ARRAY + ":", // PUSH_EMPTY_ARRAY
+        `        case ${op.PUSH_EMPTY_ARRAY}:`, // PUSH_EMPTY_ARRAY
         "          stack.push([]);",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.PUSH_CURR_POS + ":", // PUSH_CURR_POS
+        `        case ${op.PUSH_CURR_POS}:`, // PUSH_CURR_POS
         "          stack.push(peg$currPos);",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.POP + ":", // POP
+        `        case ${op.POP}:`, // POP
         "          stack.pop();",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.POP_CURR_POS + ":", // POP_CURR_POS
+        `        case ${op.POP_CURR_POS}:`, // POP_CURR_POS
         "          peg$currPos = stack.pop();",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.POP_N + ":", // POP_N n
+        `        case ${op.POP_N}:`, // POP_N n
         "          stack.length -= bc[ip + 1];",
         "          ip += 2;",
         "          break;",
         "",
-        "        case " + op.NIP + ":", // NIP
+        `        case ${op.NIP}:`, // NIP
         "          stack.splice(-2, 1);",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.APPEND + ":", // APPEND
+        `        case ${op.APPEND}:`, // APPEND
         "          stack[stack.length - 2].push(stack.pop());",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.WRAP + ":", // WRAP n
+        `        case ${op.WRAP}:`, // WRAP n
         "          stack.push(stack.splice(stack.length - bc[ip + 1], bc[ip + 1]));",
         "          ip += 2;",
         "          break;",
         "",
-        "        case " + op.TEXT + ":", // TEXT
+        `        case ${op.TEXT}:`, // TEXT
         "          stack.push(input.substring(stack.pop(), peg$currPos));",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.PLUCK + ":", // PLUCK n, k, p1, ..., pK
+        `        case ${op.PLUCK}:`, // PLUCK n, k, p1, ..., pK
         "          paramsLength = bc[ip + 2];",
         "          paramsN = 3 + paramsLength",
         "",
@@ -474,22 +436,22 @@ function generateJS(ast, session, options) {
         "          ip += paramsN;",
         "          break;",
         "",
-        "        case " + op.IF + ":", // IF t, f
+        `        case ${op.IF}:`, // IF t, f
         indent10(generateCondition("stack[stack.length - 1]", 0)),
         "",
-        "        case " + op.IF_ERROR + ":", // IF_ERROR t, f
+        `        case ${op.IF_ERROR}:`, // IF_ERROR t, f
         indent10(generateCondition("stack[stack.length - 1] === peg$FAILED", 0)),
         "",
-        "        case " + op.IF_NOT_ERROR + ":", // IF_NOT_ERROR t, f
+        `        case ${op.IF_NOT_ERROR}:`, // IF_NOT_ERROR t, f
         indent10(generateCondition("stack[stack.length - 1] !== peg$FAILED", 0)),
         "",
-        "        case " + op.WHILE_NOT_ERROR + ":", // WHILE_NOT_ERROR b
+        `        case ${op.WHILE_NOT_ERROR}:`, // WHILE_NOT_ERROR b
         indent10(generateLoop("stack[stack.length - 1] !== peg$FAILED")),
         "",
-        "        case " + op.MATCH_ANY + ":", // MATCH_ANY a, f, ...
+        `        case ${op.MATCH_ANY}:`, // MATCH_ANY a, f, ...
         indent10(generateCondition("input.length > peg$currPos", 0)),
         "",
-        "        case " + op.MATCH_STRING + ":", // MATCH_STRING s, a, f, ...
+        `        case ${op.MATCH_STRING}:`, // MATCH_STRING s, a, f, ...
         indent10(
           generateCondition(
             "input.substr(peg$currPos, peg$literals[bc[ip + 1]].length) === peg$literals[bc[ip + 1]]",
@@ -497,7 +459,7 @@ function generateJS(ast, session, options) {
           )
         ),
         "",
-        "        case " + op.MATCH_STRING_IC + ":", // MATCH_STRING_IC s, a, f, ...
+        `        case ${op.MATCH_STRING_IC}:`, // MATCH_STRING_IC s, a, f, ...
         indent10(
           generateCondition(
             "input.substr(peg$currPos, peg$literals[bc[ip + 1]].length).toLowerCase() === peg$literals[bc[ip + 1]]",
@@ -505,62 +467,62 @@ function generateJS(ast, session, options) {
           )
         ),
         "",
-        "        case " + op.MATCH_CLASS + ":", // MATCH_CLASS c, a, f, ...
+        `        case ${op.MATCH_CLASS}:`, // MATCH_CLASS c, a, f, ...
         indent10(
           generateCondition("peg$regexps[bc[ip + 1]].test(input.charAt(peg$currPos))", 1)
         ),
         "",
-        "        case " + op.ACCEPT_N + ":", // ACCEPT_N n
+        `        case ${op.ACCEPT_N}:`, // ACCEPT_N n
         "          stack.push(input.substr(peg$currPos, bc[ip + 1]));",
         "          peg$currPos += bc[ip + 1];",
         "          ip += 2;",
         "          break;",
         "",
-        "        case " + op.ACCEPT_STRING + ":", // ACCEPT_STRING s
+        `        case ${op.ACCEPT_STRING}:`, // ACCEPT_STRING s
         "          stack.push(peg$literals[bc[ip + 1]]);",
         "          peg$currPos += peg$literals[bc[ip + 1]].length;",
         "          ip += 2;",
         "          break;",
         "",
-        "        case " + op.EXPECT + ":", // EXPECT e
+        `        case ${op.EXPECT}:`, // EXPECT e
         "          rule$expects(peg$expectations[bc[ip + 1]]);",
         "          ip += 2;",
         "          break;",
         "",
-        "        case " + op.LOAD_SAVED_POS + ":", // LOAD_SAVED_POS p
+        `        case ${op.LOAD_SAVED_POS}:`, // LOAD_SAVED_POS p
         "          peg$savedPos = stack[stack.length - 1 - bc[ip + 1]];",
         "          ip += 2;",
         "          break;",
         "",
-        "        case " + op.UPDATE_SAVED_POS + ":", // UPDATE_SAVED_POS
+        `        case ${op.UPDATE_SAVED_POS}:`, // UPDATE_SAVED_POS
         "          peg$savedPos = peg$currPos;",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.CALL + ":", // CALL f, n, pc, p1, p2, ..., pN
+        `        case ${op.CALL}:`, // CALL f, n, pc, p1, p2, ..., pN
         indent10(generateCall()),
         "",
-        "        case " + op.RULE + ":", // RULE r
+        `        case ${op.RULE}:`, // RULE r
         "          stack.push(peg$parseRule(bc[ip + 1]));",
         "          ip += 2;",
         "          break;",
         "",
-        "        case " + op.SILENT_FAILS_ON + ":", // SILENT_FAILS_ON
+        `        case ${op.SILENT_FAILS_ON}:`, // SILENT_FAILS_ON
         "          peg$silentFails++;",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.SILENT_FAILS_OFF + ":", // SILENT_FAILS_OFF
+        `        case ${op.SILENT_FAILS_OFF}:`, // SILENT_FAILS_OFF
         "          peg$silentFails--;",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.EXPECT_NS_BEGIN + ":", // EXPECT_NS_BEGIN
+        `        case ${op.EXPECT_NS_BEGIN}:`, // EXPECT_NS_BEGIN
         "          peg$begin();",
         "          ip++;",
         "          break;",
         "",
-        "        case " + op.EXPECT_NS_END + ":", // EXPECT_NS_END invert
+        `        case ${op.EXPECT_NS_END}:`, // EXPECT_NS_END invert
         "          peg$end(bc[ip + 1]);",
         "          ip += 2;",
         "          break;",
@@ -568,9 +530,7 @@ function generateJS(ast, session, options) {
         "        // istanbul ignore next",
         "        default:",
         "          throw new Error(",
-        '            "Rule #" + index + "' +
-          (options.trace ? " ('\" + peg$ruleNames[ index ] + \"')" : "") +
-          ', position " + ip + ": "',
+        `            "Rule #" + index + "${options.trace ? " ('\" + peg$ruleNames[ index ] + \"')" : ""}, position " + ip + ": "`,
         '            + "Invalid opcode " + bc[ip] + "."',
         "          );",
         "      }",
@@ -600,13 +560,10 @@ function generateJS(ast, session, options) {
       // istanbul ignore next
       if (i < 0)
         session.fatal(
-          "Rule '" +
-            rule.name +
-            "': Var stack underflow: attempt to use var at index " +
-            i
+          `Rule '${rule.name}': Var stack underflow: attempt to use var at index ${i}`
         )
 
-      return "s" + i
+      return `s${i}`;
     } // |stack[i]| of the abstract machine
 
     const stack = {
@@ -614,7 +571,7 @@ function generateJS(ast, session, options) {
       maxSp: -1,
 
       push(exprCode) {
-        const code = s(++this.sp) + " = " + exprCode + ";"
+        const code = `${s(++this.sp)} = ${exprCode};`
         if (this.sp > this.maxSp) this.maxSp = this.sp
         return code
       },
@@ -653,7 +610,10 @@ function generateJS(ast, session, options) {
         const thenLength = bc[ip + baseLength - 2]
         const elseLength = bc[ip + baseLength - 1]
         const baseSp = stack.sp
-        let thenCode, elseCode, thenSp, elseSp
+        let thenCode;
+        let elseCode;
+        let thenSp;
+        let elseSp;
 
         ip += baseLength
         thenCode = compile(bc.slice(ip, ip + thenLength))
@@ -669,24 +629,12 @@ function generateJS(ast, session, options) {
           // istanbul ignore if
           if (thenSp !== elseSp) {
             session.fatal(
-              "Rule '" +
-                rule.name +
-                "', position " +
-                pos +
-                ": " +
-                "Branches of a condition can't move the stack pointer differently " +
-                "(before: " +
-                baseSp +
-                ", after then: " +
-                thenSp +
-                ", after else: " +
-                elseSp +
-                ")."
+              `Rule '${rule.name}', position ${pos}: Branches of a condition can't move the stack pointer differently (before: ${baseSp}, after then: ${thenSp}, after else: ${elseSp}).`
             )
           }
         }
 
-        parts.push("if (" + cond + ") {")
+        parts.push(`if (${cond}) {`)
         parts.push(indent2(thenCode))
         if (elseLength > 0) {
           parts.push("} else {")
@@ -700,7 +648,8 @@ function generateJS(ast, session, options) {
         const baseLength = 2
         const bodyLength = bc[ip + baseLength - 1]
         const baseSp = stack.sp
-        let bodyCode, bodySp
+        let bodyCode;
+        let bodySp;
 
         ip += baseLength
         bodyCode = compile(bc.slice(ip, ip + bodyLength))
@@ -710,21 +659,11 @@ function generateJS(ast, session, options) {
         // istanbul ignore if
         if (bodySp !== baseSp) {
           session.fatal(
-            "Rule '" +
-              rule.name +
-              "', position " +
-              pos +
-              ": " +
-              "Body of a loop can't move the stack pointer " +
-              "(before: " +
-              baseSp +
-              ", after: " +
-              bodySp +
-              ")."
+            `Rule '${rule.name}', position ${pos}: Body of a loop can't move the stack pointer (before: ${baseSp}, after: ${bodySp}).`
           )
         }
 
-        parts.push("while (" + cond + ") {")
+        parts.push(`while (${cond}) {`)
         parts.push(indent2(bodyCode))
         parts.push("}")
       }
@@ -734,13 +673,10 @@ function generateJS(ast, session, options) {
         const paramsLength = bc[ip + baseLength - 1]
 
         const value =
-          f(bc[ip + 1]) +
-          "(" +
-          bc
-            .slice(ip + baseLength, ip + baseLength + paramsLength)
-            .map(p => stack.index(p))
-            .join(", ") +
-          ")"
+          `${f(bc[ip + 1])}(${bc
+  .slice(ip + baseLength, ip + baseLength + paramsLength)
+  .map(p => stack.index(p))
+  .join(", ")})`
 
         stack.pop(bc[ip + 2])
         parts.push(stack.push(value))
@@ -785,7 +721,7 @@ function generateJS(ast, session, options) {
             break
 
           case op.POP_CURR_POS: // POP_CURR_POS
-            parts.push("peg$currPos = " + stack.pop() + ";")
+            parts.push(`peg$currPos = ${stack.pop()};`)
             ip++
             break
 
@@ -803,17 +739,17 @@ function generateJS(ast, session, options) {
 
           case op.APPEND: // APPEND
             value = stack.pop()
-            parts.push(stack.top() + ".push(" + value + ");")
+            parts.push(`${stack.top()}.push(${value});`)
             ip++
             break
 
           case op.WRAP: // WRAP n
-            parts.push(stack.push("[" + stack.pop(bc[ip + 1]).join(", ") + "]"))
+            parts.push(stack.push(`[${stack.pop(bc[ip + 1]).join(", ")}]`))
             ip += 2
             break
 
           case op.TEXT: // TEXT
-            parts.push(stack.push("input.substring(" + stack.pop() + ", peg$currPos)"))
+            parts.push(stack.push(`input.substring(${stack.pop()}, peg$currPos)`))
             ip++
             break
 
@@ -838,15 +774,15 @@ function generateJS(ast, session, options) {
             break
 
           case op.IF_ERROR: // IF_ERROR t, f
-            compileCondition(stack.top() + " === peg$FAILED", 0)
+            compileCondition(`${stack.top()} === peg$FAILED`, 0)
             break
 
           case op.IF_NOT_ERROR: // IF_NOT_ERROR t, f
-            compileCondition(stack.top() + " !== peg$FAILED", 0)
+            compileCondition(`${stack.top()} !== peg$FAILED`, 0)
             break
 
           case op.WHILE_NOT_ERROR: // WHILE_NOT_ERROR b
-            compileLoop(stack.top() + " !== peg$FAILED", 0)
+            compileLoop(`${stack.top()} !== peg$FAILED`, 0)
             break
 
           case op.MATCH_ANY: // MATCH_ANY a, f, ...
@@ -856,40 +792,33 @@ function generateJS(ast, session, options) {
           case op.MATCH_STRING: // MATCH_STRING s, a, f, ...
             compileCondition(
               ast.literals[bc[ip + 1]].length > 1
-                ? "input.substr(peg$currPos, " +
-                    ast.literals[bc[ip + 1]].length +
-                    ") === " +
-                    l(bc[ip + 1])
-                : "input.charCodeAt(peg$currPos) === " +
-                    ast.literals[bc[ip + 1]].charCodeAt(0),
+                ? `input.substr(peg$currPos, ${ast.literals[bc[ip + 1]].length}) === ${l(bc[ip + 1])}`
+                : `input.charCodeAt(peg$currPos) === ${ast.literals[bc[ip + 1]].charCodeAt(0)}`,
               1
             )
             break
 
           case op.MATCH_STRING_IC: // MATCH_STRING_IC s, a, f, ...
             compileCondition(
-              "input.substr(peg$currPos, " +
-                ast.literals[bc[ip + 1]].length +
-                ").toLowerCase() === " +
-                l(bc[ip + 1]),
+              `input.substr(peg$currPos, ${ast.literals[bc[ip + 1]].length}).toLowerCase() === ${l(bc[ip + 1])}`,
               1
             )
             break
 
           case op.MATCH_CLASS: // MATCH_CLASS c, a, f, ...
-            compileCondition(r(bc[ip + 1]) + ".test(input.charAt(peg$currPos))", 1)
+            compileCondition(`${r(bc[ip + 1])}.test(input.charAt(peg$currPos))`, 1)
             break
 
           case op.ACCEPT_N: // ACCEPT_N n
             parts.push(
               stack.push(
                 bc[ip + 1] > 1
-                  ? "input.substr(peg$currPos, " + bc[ip + 1] + ")"
+                  ? `input.substr(peg$currPos, ${bc[ip + 1]})`
                   : "input.charAt(peg$currPos)"
               )
             )
             parts.push(
-              bc[ip + 1] > 1 ? "peg$currPos += " + bc[ip + 1] + ";" : "peg$currPos++;"
+              bc[ip + 1] > 1 ? `peg$currPos += ${bc[ip + 1]};` : "peg$currPos++;"
             )
             ip += 2
             break
@@ -898,19 +827,19 @@ function generateJS(ast, session, options) {
             parts.push(stack.push(l(bc[ip + 1])))
             parts.push(
               ast.literals[bc[ip + 1]].length > 1
-                ? "peg$currPos += " + ast.literals[bc[ip + 1]].length + ";"
+                ? `peg$currPos += ${ast.literals[bc[ip + 1]].length};`
                 : "peg$currPos++;"
             )
             ip += 2
             break
 
           case op.EXPECT: // EXPECT e
-            parts.push("rule$expects(" + e(bc[ip + 1]) + ");")
+            parts.push(`rule$expects(${e(bc[ip + 1])});`)
             ip += 2
             break
 
           case op.LOAD_SAVED_POS: // LOAD_SAVED_POS p
-            parts.push("peg$savedPos = " + stack.index(bc[ip + 1]) + ";")
+            parts.push(`peg$savedPos = ${stack.index(bc[ip + 1])};`)
             ip += 2
             break
 
@@ -924,7 +853,7 @@ function generateJS(ast, session, options) {
             break
 
           case op.RULE: // RULE r
-            parts.push(stack.push("peg$parse" + ast.rules[bc[ip + 1]].name + "()"))
+            parts.push(stack.push(`peg$parse${ast.rules[bc[ip + 1]].name}()`))
             ip += 2
             break
 
@@ -944,21 +873,14 @@ function generateJS(ast, session, options) {
             break
 
           case op.EXPECT_NS_END: // EXPECT_NS_END invert
-            parts.push("peg$end(" + (bc[ip + 1] !== 0) + ");")
+            parts.push(`peg$end(${bc[ip + 1] !== 0});`)
             ip += 2
             break
 
           // istanbul ignore next
           default:
             session.fatal(
-              "Rule '" +
-                rule.name +
-                "', position " +
-                ip +
-                ": " +
-                "Invalid opcode " +
-                bc[ip] +
-                "."
+              `Rule '${rule.name}', position ${ip}: Invalid opcode ${bc[ip]}.`
             )
         }
       }
@@ -968,7 +890,7 @@ function generateJS(ast, session, options) {
 
     const code = compile(rule.bytecode)
 
-    parts.push("function peg$parse" + rule.name + "() {")
+    parts.push(`function peg$parse${rule.name}() {`)
 
     if (options.trace) {
       parts.push("  var startPos = peg$currPos;")
@@ -978,19 +900,19 @@ function generateJS(ast, session, options) {
       stackVars[i] = s(i)
     }
 
-    parts.push("  var " + stackVars.join(", ") + ";")
+    parts.push(`  var ${stackVars.join(", ")};`)
 
     parts.push(
       indent2(
         generateRuleHeader(
-          '"' + util.stringEscape(rule.name) + '"',
+          `"${util.stringEscape(rule.name)}"`,
           ast.indexOfRule(rule.name)
         )
       )
     )
     parts.push(indent2(code))
     parts.push(
-      indent2(generateRuleFooter('"' + util.stringEscape(rule.name) + '"', s(0)))
+      indent2(generateRuleFooter(`"${util.stringEscape(rule.name)}"`, s(0)))
     )
 
     parts.push("}")
@@ -1209,26 +1131,24 @@ function generateJS(ast, session, options) {
 
     if (options.optimize === "size") {
       const startRuleIndices =
-        "{ " +
-        options.allowedStartRules.map(r => r + ": " + ast.indexOfRule(r)).join(", ") +
-        " }"
+        `{ ${options.allowedStartRules.map(r => `${r}: ${ast.indexOfRule(r)}`).join(", ")} }`
       const startRuleIndex = ast.indexOfRule(options.allowedStartRules[0])
 
       parts.push(
         [
-          "  var peg$startRuleIndices = " + startRuleIndices + ";",
-          "  var peg$startRuleIndex = " + startRuleIndex + ";",
+          `  var peg$startRuleIndices = ${startRuleIndices};`,
+          `  var peg$startRuleIndex = ${startRuleIndex};`,
         ].join("\n")
       )
     } else {
       const startRuleFunctions =
-        "{ " + options.allowedStartRules.map(r => r + ": peg$parse" + r).join(", ") + " }"
-      const startRuleFunction = "peg$parse" + options.allowedStartRules[0]
+        `{ ${options.allowedStartRules.map(r => `${r}: peg$parse${r}`).join(", ")} }`
+      const startRuleFunction = `peg$parse${options.allowedStartRules[0]}`
 
       parts.push(
         [
-          "  var peg$startRuleFunctions = " + startRuleFunctions + ";",
-          "  var peg$startRuleFunction = " + startRuleFunction + ";",
+          `  var peg$startRuleFunctions = ${startRuleFunctions};`,
+          `  var peg$startRuleFunction = ${startRuleFunction};`,
         ].join("\n")
       )
     }
@@ -1256,9 +1176,9 @@ function generateJS(ast, session, options) {
     if (options.trace) {
       if (options.optimize === "size") {
         const ruleNames =
-          "[" + ast.rules.map(r => `"${util.stringEscape(r.name)}"`).join(", ") + "]"
+          `[${ast.rules.map(r => `"${util.stringEscape(r.name)}"`).join(", ")}]`
 
-        parts.push(["  var peg$ruleNames = " + ruleNames + ";", ""].join("\n"))
+        parts.push([`  var peg$ruleNames = ${ruleNames};`, ""].join("\n"))
       }
 
       if (use("DefaultTracer"))
@@ -1573,11 +1493,11 @@ function generateJS(ast, session, options) {
       const header = options.header
 
       if (typeof header === "string") {
-        comment += "\n\n" + header
+        comment += `\n\n${header}`
       } else if (Array.isArray(header)) {
         comment += "\n\n"
         header.forEach(data => {
-          comment += "// " + data
+          comment += `// ${data}`
         })
       }
 
@@ -1619,9 +1539,9 @@ function generateJS(ast, session, options) {
           "",
           indent2(toplevelCode),
           "",
-          indent2("return " + generateParserObject() + ";"),
+          indent2(`return ${generateParserObject()};`),
           "})()",
-        ].join("\n")
+        ].join("\n");
       },
 
       commonjs() {
@@ -1633,18 +1553,14 @@ function generateJS(ast, session, options) {
         if (dependencyVars.length > 0) {
           dependencyVars.forEach(variable => {
             parts.push(
-              "var " +
-                variable +
-                ' = require("' +
-                util.stringEscape(options.dependencies[variable]) +
-                '");'
+              `var ${variable} = require("${util.stringEscape(options.dependencies[variable])}");`
             )
           })
           parts.push("")
         }
 
         parts.push(
-          [toplevelCode, "", "module.exports = " + generateParserObject() + ";", ""].join(
+          [toplevelCode, "", `module.exports = ${generateParserObject()};`, ""].join(
             "\n"
           )
         )
@@ -1661,11 +1577,7 @@ function generateJS(ast, session, options) {
         if (dependencyVars.length > 0) {
           dependencyVars.forEach(variable => {
             parts.push(
-              "import " +
-                variable +
-                ' from "' +
-                util.stringEscape(options.dependencies[variable]) +
-                '";'
+              `import ${variable} from "${util.stringEscape(options.dependencies[variable])}";`
             )
           })
           parts.push("")
@@ -1674,9 +1586,9 @@ function generateJS(ast, session, options) {
         parts.push(
           toplevelCode,
           "",
-          "export " + generateParserExports() + ";",
+          `export ${generateParserExports()};`,
           "",
-          "export default " + generateParserObject() + ";",
+          `export default ${generateParserObject()};`,
           ""
         )
 
@@ -1687,20 +1599,20 @@ function generateJS(ast, session, options) {
         const dependencyVars = Object.keys(options.dependencies)
         const dependencyIds = dependencyVars.map(v => options.dependencies[v])
         const dependencies =
-          "[" + dependencyIds.map(id => `"${util.stringEscape(id)}"`).join(", ") + "]"
+          `[${dependencyIds.map(id => `"${util.stringEscape(id)}"`).join(", ")}]`
         const params = dependencyVars.join(", ")
 
         return [
           generateHeaderComment(),
-          "define(" + dependencies + ", function(" + params + ") {",
+          `define(${dependencies}, function(${params}) {`,
           '  "use strict";',
           "",
           indent2(toplevelCode),
           "",
-          indent2("return " + generateParserObject() + ";"),
+          indent2(`return ${generateParserObject()};`),
           "});",
           "",
-        ].join("\n")
+        ].join("\n");
       },
 
       globals() {
@@ -1711,10 +1623,10 @@ function generateJS(ast, session, options) {
           "",
           indent2(toplevelCode),
           "",
-          indent2("root." + options.exportVar + " = " + generateParserObject() + ";"),
+          indent2(`root.${options.exportVar} = ${generateParserObject()};`),
           "})(this);",
           "",
-        ].join("\n")
+        ].join("\n");
       },
 
       umd() {
@@ -1722,11 +1634,11 @@ function generateJS(ast, session, options) {
         const dependencyVars = Object.keys(options.dependencies)
         const dependencyIds = dependencyVars.map(v => options.dependencies[v])
         const dependencies =
-          "[" + dependencyIds.map(id => `"${util.stringEscape(id)}"`).join(", ") + "]"
+          `[${dependencyIds.map(id => `"${util.stringEscape(id)}"`).join(", ")}]`
         const requires = dependencyIds
           .map(id => `require("${util.stringEscape(id)}")`)
           .join(", ")
-        const args = dependencyVars.map(v => "root." + v).join(", ")
+        const args = dependencyVars.map(v => `root.${v}`).join(", ")
         const params = dependencyVars.join(", ")
 
         parts.push(
@@ -1734,9 +1646,9 @@ function generateJS(ast, session, options) {
             generateHeaderComment(),
             "(function(root, factory) {",
             '  if (typeof define === "function" && define.amd) {',
-            "    define(" + dependencies + ", factory);",
+            `    define(${dependencies}, factory);`,
             '  } else if (typeof module === "object" && module.exports) {',
-            "    module.exports = factory(" + requires + ");",
+            `    module.exports = factory(${requires});`,
           ].join("\n")
         )
 
@@ -1744,7 +1656,7 @@ function generateJS(ast, session, options) {
           parts.push(
             [
               "  } else {",
-              "    root." + options.exportVar + " = factory(" + args + ");",
+              `    root.${options.exportVar} = factory(${args});`,
             ].join("\n")
           )
         }
@@ -1752,12 +1664,12 @@ function generateJS(ast, session, options) {
         parts.push(
           [
             "  }",
-            "})(this, function(" + params + ") {",
+            `})(this, function(${params}) {`,
             '  "use strict";',
             "",
             indent2(toplevelCode),
             "",
-            indent2("return " + generateParserObject() + ";"),
+            indent2(`return ${generateParserObject()};`),
             "});",
             "",
           ].join("\n")
@@ -1773,4 +1685,4 @@ function generateJS(ast, session, options) {
   ast.code = generateWrapper(generateToplevel())
 }
 
-module.exports = generateJS
+export default generateJS;

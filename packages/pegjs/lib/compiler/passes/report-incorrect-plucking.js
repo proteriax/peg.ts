@@ -38,4 +38,4 @@ function reportIncorrectPlucking(ast, session) {
   })(ast)
 }
 
-module.exports = reportIncorrectPlucking
+export default reportIncorrectPlucking;

@@ -1,8 +1,8 @@
 "use strict"
 
-const Node = require("./Node")
-const visitor = require("./visitor")
-const util = require("../util")
+import Node from "./Node";
+import visitor from "./visitor";
+import util from "../util";
 
 class Grammar extends Node {
   // Creates a new AST
@@ -30,7 +30,7 @@ class Grammar extends Node {
   }
 }
 
-module.exports = Grammar
+export default Grammar;
 
 /* ***************************** @private ***************************** */
 

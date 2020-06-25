@@ -126,4 +126,4 @@ function inferenceMatchResult(ast, session) {
   inference(ast)
 }
 
-module.exports = inferenceMatchResult
+export default inferenceMatchResult;

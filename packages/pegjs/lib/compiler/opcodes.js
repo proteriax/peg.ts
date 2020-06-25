@@ -57,4 +57,4 @@ const opcodes = {
 
 };
 
-module.exports = opcodes;
+export default opcodes;

@@ -1,10 +1,9 @@
 "use strict";
 
-const { Bundler, fs, expand } = require( "../../export.utils" );
+import {Bundler, fs, expand} from "../../export.utils";
+import template from "../../templates/editor";
 
-const template = require( "../../templates/editor" );
-
-module.exports = Bundler.create( {
+export default Bundler.create( {
 
     script: __filename,
     check: expand( "packages" ),

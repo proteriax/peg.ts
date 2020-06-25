@@ -61,7 +61,8 @@ const objects = {
   values(object, transformer) {
     const target = []
     let index = -1
-    let key, value
+    let key;
+    let value;
 
     for (key in object) {
       if (!__hasOwnProperty.call(object, key)) continue
@@ -87,8 +88,8 @@ const objects = {
     ic()
     ic()
     return o
-    eval("o" + o)
+    eval(`o${o}`)
   },
 }
 
-module.exports = objects
+export default objects;

@@ -7,12 +7,12 @@
 
 "use strict"
 
-const child_process = require("child_process")
-const fs = require("fs")
-const os = require("os")
-const path = require("path")
-const dedent = require("dedent")
-const glob = require("glob")
+import child_process from "child_process";
+import fs from "fs";
+import os from "os";
+import path from "path";
+import dedent from "dedent";
+import glob from "glob";
 
 // Current Working Directory
 
@@ -56,14 +56,14 @@ function prepare(commit) {
 
 function runBenchmark() {
   return parseFloat(
-    exec("node " + BENCHMARK_BIN)
+    exec(`node ${BENCHMARK_BIN}`)
       // Split by table seprator, reverse and return the total bytes per second
       .split("│")
       .reverse()[1]
       // Trim the whitespaces and remove ` kB/s` from the end
       .trim()
       .slice(0, -5)
-  )
+  );
 }
 
 function measureSpeed() {
@@ -81,7 +81,7 @@ function measureSize() {
 
   glob.sync("examples/*.pegjs").forEach(example => {
     exec(`node ${PEGJS_BIN} ${example}`)
-    example = example.slice(0, -5) + "js"
+    example = `${example.slice(0, -5)}js`
     size += fs.statSync(example).size
     fs.unlinkSync(example)
   })
@@ -99,7 +99,7 @@ const argv = process.argv.slice(2)
 let commit_before, commit_after
 
 if (argv.length === 1) {
-  commit_before = argv[0] + "~1"
+  commit_before = `${argv[0]}~1`
   commit_after = argv[0]
 } else if (argv.length === 2) {
   commit_before = argv[0]
@@ -132,13 +132,13 @@ echo(`Measuring commit ${commit_before}...`)
 prepare(commit_before)
 speed1 = measureSpeed()
 size1 = measureSize()
-echo(" done." + os.EOL)
+echo(` done.${os.EOL}`)
 
 echo(`Measuring commit ${commit_after}...`)
 prepare(commit_after)
 speed2 = measureSpeed()
 size2 = measureSize()
-echo(" done." + os.EOL)
+echo(` done.${os.EOL}`)
 
 // Finish
 

@@ -39,4 +39,4 @@ const benchmarks = [
   },
 ]
 
-module.exports = benchmarks
+export default benchmarks;

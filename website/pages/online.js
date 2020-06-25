@@ -1,6 +1,6 @@
 "use strict";
 
-const template = require( "../templates/editor" );
+import template from "../templates/editor";
 
 const input = `
 
@@ -37,7 +37,7 @@ _ "whitespace"
 
 `;
 
-module.exports = () => template( {
+export default () => template( {
     title: "Online Version",
     lib: "/vendor/pegjs/peg.js",
     input: input.trim(),

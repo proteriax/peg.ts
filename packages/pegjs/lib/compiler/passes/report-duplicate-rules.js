@@ -26,4 +26,4 @@ function reportDuplicateRules(ast, session) {
   check(ast)
 }
 
-module.exports = reportDuplicateRules
+export default reportDuplicateRules;

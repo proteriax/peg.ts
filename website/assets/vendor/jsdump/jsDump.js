@@ -12,17 +12,17 @@ var jsDump;
 
 (function(){
 	function quote( str ){
-		return '"' + str.toString().replace(/"/g, '\\"') + '"';
+		return `"${str.toString().replace(/"/g, '\\"')}"`;
 	}
 	function literal( o ){
-		return o + '';
+		return `${o}`;
 	}
 	function join( pre, arr, post ){
 		var s = jsDump.separator(),
 			base = jsDump.indent(),
 			inner = jsDump.indent(1);
 		if( arr.join )
-			arr = arr.join( ',' + s + inner );
+			arr = arr.join( `,${s}${inner}` );
 		if( !arr )
 			return pre + post;
 		return [ pre, inner + arr, base + post ].join(s);
@@ -128,7 +128,7 @@ var jsDump;
 				var ret = 'function',
 					name = 'name' in fn ? fn.name : (reName.exec(fn)||[])[1];//functions never have name in IE
 				if( name )
-					ret += ' ' + name;
+					ret += ` ${name}`;
 				ret += '(';
 				ret = [ ret, this.parse( fn, 'functionArgs' ), '){'].join('');
 				return join( ret, this.parse(fn,'functionCode'), '}' );
@@ -140,12 +140,12 @@ var jsDump;
 			object:function( map ){
 				if (this._depth_ >= this.maxDepth) {
 					this._depth_ = 1; // Reset for future use
-					throw new Error("Object nesting exceeded jsDump.maxDepth (" + jsDump.maxDepth + ")");
+					throw new Error(`Object nesting exceeded jsDump.maxDepth (${jsDump.maxDepth})`);
 				}
 				var ret = [ ];
 				this.up();
 				for( var key in map )
-					ret.push( this.parse(key,'key') + ': ' + this.parse(map[key]) );
+					ret.push( `${this.parse(key,'key')}: ${this.parse(map[key])}` );
 				this.down();
 				return join( '{', ret, '}' );
 			},
@@ -157,9 +157,9 @@ var jsDump;
 				for( var a in this.DOMAttrs ){
 					var val = node[this.DOMAttrs[a]];
 					if( val )
-						ret += ' ' + a + '=' + this.parse( val, 'attribute' );
+						ret += ` ${a}=${this.parse( val, 'attribute' )}`;
 				}
-				return ret + close + open + '/' + tag + close;
+				return `${ret + close + open}/${tag}${close}`;
 			},
 			functionArgs:function( fn ){//function calls it internally, it's the arguments part of the function
 				var l = fn.length;
@@ -167,7 +167,7 @@ var jsDump;
 				var args = Array(l);
 				while( l-- )
 					args[l] = String.fromCharCode(97+l);//97 is 'a'
-				return ' ' + args.join(', ') + ' ';
+				return ` ${args.join(', ')} `;
 			},
 			key:quote, //object calls it internally, the key part of an item in a map
 			functionCode:'[code]', //function calls it internally, it's the content of the function

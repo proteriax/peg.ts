@@ -1,13 +1,13 @@
 "use strict"
 
-const cp = require("child_process")
-const fs = require("fs")
-const path = require("path")
+import cp from "child_process";
+import fs from "fs";
+import path from "path";
 
 function publish(id) {
   // paths
 
-  const packagejson = require.resolve(id + "/package.json")
+  const packagejson = require.resolve(`${id}/package.json`)
   const directory = path.dirname(packagejson)
   const npmrc = path.join(directory, ".npmrc")
 
@@ -36,13 +36,13 @@ function publish(id) {
 
   // assertions
 
-  if (!GITHUB_REF) die("`process.env.GITHUB_REF` is required by " + APP)
-  if (!GITHUB_SHA) die("`process.env.GITHUB_SHA` is required by " + APP)
-  if (!NPM_TOKEN) die("`process.env.NPM_TOKEN` is required by " + APP)
+  if (!GITHUB_REF) die(`\`process.env.GITHUB_REF\` is required by ${APP}`)
+  if (!GITHUB_SHA) die(`\`process.env.GITHUB_SHA\` is required by ${APP}`)
+  if (!NPM_TOKEN) die(`\`process.env.NPM_TOKEN\` is required by ${APP}`)
 
   // update version field in `<package>/package.json`
 
-  const GIT_COMMIT_SHORT_SHA = exec("git rev-parse --short " + GITHUB_SHA, false)
+  const GIT_COMMIT_SHORT_SHA = exec(`git rev-parse --short ${GITHUB_SHA}`, false)
   const dev = `${VERSION}-${GITHUB_REF.replace(
     "refs/heads/",
     ""
@@ -61,4 +61,4 @@ function publish(id) {
   fs.unlinkSync(npmrc)
 }
 
-module.exports = publish
+export default publish;

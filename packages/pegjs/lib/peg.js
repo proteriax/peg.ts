@@ -1,20 +1,20 @@
 "use strict"
 
-const GrammarError = require("./grammar-error")
-const ast = require("./ast")
-const compiler = require("./compiler")
-const parser = require("./parser")
-const util = require("./util")
+import GrammarError from "./grammar-error";
+import ast from "./ast";
+import compiler from "./compiler";
+import parser from "./parser";
+import util from "./util";
 
 const peg = {
   // PEG.js version (uses semantic versioning).
   VERSION: require("../package.json").version,
 
-  GrammarError: GrammarError,
-  ast: ast,
-  parser: parser,
-  compiler: compiler,
-  util: util,
+  GrammarError,
+  ast,
+  parser,
+  compiler,
+  util,
 
   // Generates a parser from a specified grammar and returns it.
   //
@@ -45,4 +45,4 @@ const peg = {
   },
 }
 
-module.exports = peg
+export default peg;

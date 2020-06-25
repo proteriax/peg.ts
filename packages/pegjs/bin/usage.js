@@ -1,6 +1,6 @@
 "use strict";
 
-module.exports = `
+export default `
 Usage: pegjs [options] [<input_file>] [--]
 
 Options:

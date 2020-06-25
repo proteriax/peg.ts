@@ -29,7 +29,7 @@ function reportInfiniteRecursion(ast, session) {
     },
 
     rule_ref(node) {
-      if (visitedRules.indexOf(node.name) !== -1) {
+      if (visitedRules.includes(node.name)) {
         visitedRules.push(node.name)
         const rulePath = visitedRules.join(" -> ")
 
@@ -46,4 +46,4 @@ function reportInfiniteRecursion(ast, session) {
   check(ast)
 }
 
-module.exports = reportInfiniteRecursion
+export default reportInfiniteRecursion;

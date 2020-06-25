@@ -13,4 +13,4 @@ class GrammarError {
   }
 }
 
-module.exports = GrammarError
+export default GrammarError;

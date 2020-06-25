@@ -1,11 +1,11 @@
 "use strict"
 
-const bluebird = require("bluebird")
-const BundlerTarget = require("@pegjs/bundler/target")
-const cp = require("@futagoza/child-process")
-const fse = require("fs-extra-plus")
-const isSourceNewer = require("@tache/is-source-newer")
-const path = require("path")
+import bluebird from "bluebird";
+import BundlerTarget from "@pegjs/bundler/target";
+import cp from "@futagoza/child-process";
+import fse from "fs-extra-plus";
+import isSourceNewer from "@tache/is-source-newer";
+import path from "path";
 
 /**
  * This flag can be used to:
@@ -151,7 +151,7 @@ async function refresh(source, target, cb) {
   return FRESH_BUILD || (await isSourceNewer(paths)) ? cb(paths) : Promise.resolve()
 }
 
-module.exports = {
+export default {
   FRESH_BUILD,
 
   bluebird,
@@ -161,4 +161,4 @@ module.exports = {
   Bundler,
   expand,
   refresh,
-}
+};

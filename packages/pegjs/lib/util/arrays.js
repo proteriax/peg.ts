@@ -24,4 +24,4 @@ function find(array, condition) {
 
 // Exports
 
-module.exports = { findIndex, find }
+export default { findIndex, find };

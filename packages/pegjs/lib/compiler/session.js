@@ -1,10 +1,10 @@
 "use strict"
 
-const ast = require("../ast")
-const GrammarError = require("../grammar-error")
-const opcodes = require("./opcodes")
-const parser = require("../parser")
-const vm = require("../util/vm")
+import ast from "../ast";
+import GrammarError from "../grammar-error";
+import opcodes from "./opcodes";
+import parser from "../parser";
+import vm from "../util/vm";
 
 function fatal(message, location) {
   if (typeof location !== "undefined") throw new GrammarError(message, location)
@@ -41,4 +41,4 @@ class Session {
   }
 }
 
-module.exports = Session
+export default Session;

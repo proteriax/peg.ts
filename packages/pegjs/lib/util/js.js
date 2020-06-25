@@ -112,4 +112,4 @@ const js = {
   ],
 }
 
-module.exports = js
+export default js;

@@ -1,10 +1,9 @@
 "use strict"
 
-const { fs, expand } = require("../export.utils")
+import {fs, expand} from "../export.utils";
+import template from "./html";
 
-const template = require("./html")
-
-module.exports = async ({ ga, input, lib, layout, title } = {}) => {
+export default async ({ ga, input, lib, layout, title } = {}) => {
   const EDITOR_VIEW = await fs.readFile(expand("editor.html", __dirname), "utf8")
 
   const content = `
@@ -35,4 +34,4 @@ module.exports = async ({ ga, input, lib, layout, title } = {}) => {
     layout: layout || "online",
     title,
   })
-}
+};

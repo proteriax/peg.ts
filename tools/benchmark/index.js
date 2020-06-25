@@ -1,8 +1,8 @@
 "use strict"
 
-const Runner = require("./runner.js")
-const benchmarks = require("./benchmarks.js")
-const fs = require("fs")
+import Runner from "./runner.js";
+import benchmarks from "./benchmarks.js";
+import fs from "fs";
 
 // Results Table Manipulation
 
@@ -41,7 +41,7 @@ function writeHeading(heading) {
   console.log(
     "├─────────────────────────────────────┴───────────┴────────────┴──────────────┤"
   )
-  console.log("│ " + center(heading, 75) + " │")
+  console.log(`│ ${center(heading, 75)} │`)
   console.log(
     "├─────────────────────────────────────┬───────────┬────────────┬──────────────┤"
   )
@@ -52,15 +52,7 @@ function writeResult(title, inputSize, parseTime) {
   const MS_IN_S = 1000
 
   console.log(
-    "│ " +
-      padRight(title, 35) +
-      " │ " +
-      padLeft((inputSize / KB).toFixed(2), 6) +
-      " kB │ " +
-      padLeft(parseTime.toFixed(2), 7) +
-      " ms │ " +
-      padLeft((inputSize / KB / (parseTime / MS_IN_S)).toFixed(2), 7) +
-      " kB/s │"
+    `│ ${padRight(title, 35)} │ ${padLeft((inputSize / KB).toFixed(2), 6)} kB │ ${padLeft(parseTime.toFixed(2), 7)} ms │ ${padLeft((inputSize / KB / (parseTime / MS_IN_S)).toFixed(2), 7)} kB/s │`
   )
 }
 
@@ -161,7 +153,7 @@ while (args.length > 0 && isOption(args[0])) {
       break
 
     default:
-      abort("Unknown option: " + args[0] + ".")
+      abort(`Unknown option: ${args[0]}.`)
   }
   nextArg()
 }
@@ -189,7 +181,7 @@ Runner.run(benchmarks, runCount, options, {
 
   benchmarkFinish(benchmark, inputSize, parseTime) {
     writeSeparator()
-    writeResult(benchmark.title + " total", inputSize, parseTime)
+    writeResult(`${benchmark.title} total`, inputSize, parseTime)
   },
 
   start() {

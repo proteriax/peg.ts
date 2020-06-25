@@ -1,3 +1,3 @@
 "use strict"
 
-module.exports = require("./export.utils").Bundler.load()
+export default require("./export.utils").Bundler.load();

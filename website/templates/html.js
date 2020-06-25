@@ -19,9 +19,9 @@ function menuItem(title, url, text) {
   return `<a ${className} href="/${url}">${text}</a>`
 }
 
-module.exports = ({
+export default ({
   bodyStart = "<div id='main'>",
-  bodyEnd = "    " + defaultEnd.trimLeft(),
+  bodyEnd = `    ${defaultEnd.trimLeft()}`,
   content = "",
   ga = "UA-100728112-1",
   head = "",
@@ -40,7 +40,7 @@ module.exports = ({
     <meta name="keywords" content="parser generator, PEG, JavaScript">
     <meta name="description" content="PEG.js is a parser generator for JavaScript based on the parsing expression grammar formalism.">
     <title>${
-      title && title !== "Home" ? title + " &raquo; " : ""
+      title && title !== "Home" ? `${title} &raquo; ` : ""
     }PEG.js &ndash; Parser Generator for JavaScript</title>
     <link rel="stylesheet" href="/css/common.css">
     <link rel="stylesheet" href="/css/layout-${layout}.css">
@@ -87,4 +87,4 @@ module.exports = ({
 
 </html>
 
-`.trim()
+`.trim();

@@ -18,7 +18,7 @@ function removeProxyRules(ast, session, options) {
   ast.rules.forEach(rule => {
     if (isProxyRule(rule)) {
       replaceRuleRefs(ast, rule.name, rule.expression.name)
-      if (allowedStartRules.indexOf(rule.name) < 0) return
+      if (!allowedStartRules.includes(rule.name)) return
     }
 
     rules.push(rule)
@@ -27,4 +27,4 @@ function removeProxyRules(ast, session, options) {
   ast.rules = rules
 }
 
-module.exports = removeProxyRules
+export default removeProxyRules;

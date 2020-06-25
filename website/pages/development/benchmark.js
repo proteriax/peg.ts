@@ -1,10 +1,9 @@
 "use strict";
 
-const { Bundler, expand } = require( "../../export.utils" );
+import {Bundler, expand} from "../../export.utils";
+import template from "../../templates/article";
 
-const template = require( "../../templates/article" );
-
-module.exports = Bundler.create( {
+export default Bundler.create( {
 
     script: __filename,
     check: expand( "tools/benchmark" ),

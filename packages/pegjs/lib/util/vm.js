@@ -20,4 +20,4 @@ function evalModule(source, context) {
 
 // Exports
 
-module.exports = { evalModule }
+export default { evalModule };

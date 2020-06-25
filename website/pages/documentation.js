@@ -1,10 +1,9 @@
 "use strict";
 
-const { fs, expand } = require( "../export.utils" );
+import {fs, expand} from "../export.utils";
+import template from "../templates/article";
 
-const template = require( "../templates/article" );
-
-module.exports = async () => template( {
+export default async () => template( {
     title: "Documentation",
     content: await fs.readFile( expand( "documentation.html", __dirname ), "utf8" ),
 } );

@@ -1,5 +1,5 @@
 "use strict"
 
-exports.visitor = require("./visitor")
-exports.Node = require("./Node")
-exports.Grammar = require("./Grammar")
+export var visitor = require("./visitor");
+export var Node = require("./Node");
+export var Grammar = require("./Grammar");

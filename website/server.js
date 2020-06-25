@@ -1,12 +1,12 @@
 "use strict"
 
-const bodyParser = require("body-parser")
-const bundle = require("@pegjs/bundle-generator")
-const express = require("express")
-const layout = require("express-layout")
-const logger = require("morgan")
-const { readFileSync } = require("fs")
-const { join } = require("path")
+import bodyParser from "body-parser";
+import bundle from "@pegjs/bundle-generator";
+import express from "express";
+import layout from "express-layout";
+import logger from "morgan";
+import {readFileSync} from "fs";
+import {join} from "path";
 
 const path = (...parts) => join(__dirname, "..", ...parts)
 
@@ -31,7 +31,7 @@ app.use((req, res, next) => {
 })
 
 app.locals.menuItem = (req, id, title) => {
-  const className = req.path === "/" + id ? ' class="current"' : ""
+  const className = req.path === `/${id}` ? ' class="current"' : ""
 
   return `<a ${className} href="/${id}">${title}</a>`
 }

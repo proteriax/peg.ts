@@ -1,9 +1,9 @@
 "use strict"
 
-const arrays = require("./arrays")
-const js = require("./js")
-const objects = require("./objects")
-const vm = require("./vm")
+import arrays from "./arrays";
+import js from "./js";
+import objects from "./objects";
+import vm from "./vm";
 
 /**
  * ```ts
@@ -40,7 +40,7 @@ function processOptions(options, defaults) {
   return processedOptions
 }
 
-module.exports = {
+export default {
   find: arrays.find,
   findIndex: arrays.findIndex,
 
@@ -60,4 +60,4 @@ module.exports = {
   convertPasses,
   processOptions,
   noop() {},
-}
+};

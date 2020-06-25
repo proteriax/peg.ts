@@ -19,4 +19,4 @@ function reportUndefinedRules(ast, session, options) {
   })
 }
 
-module.exports = reportUndefinedRules
+export default reportUndefinedRules;

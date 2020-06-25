@@ -23,15 +23,13 @@ $(document).ready(function() {
     return $("<span/>", {
       "class": "size-and-time",
       title:   title,
-      html:    (size / KB).toPrecision(2) + "&nbsp;kB, "
-                 + time + "&nbsp;ms, "
-                 + ((size / KB) / (time / MS_IN_S)).toPrecision(2) + "&nbsp;kB/s"
+      html:    `${(size / KB).toPrecision(2)}&nbsp;kB, ${time}&nbsp;ms, ${((size / KB) / (time / MS_IN_S)).toPrecision(2)}&nbsp;kB/s`
     });
   }
 
   function buildErrorMessage(e) {
     return e.location !== undefined
-      ? "Line " + e.location.start.line + ", column " + e.location.start.column + ": " + e.message
+      ? `Line ${e.location.start.line}, column ${e.location.start.column}: ${e.message}`
       : e.message;
   }
 
@@ -170,10 +168,10 @@ $(document).ready(function() {
     $(".CodeMirror").height("0px");
     $("#input").height("0px");
 
-    $("#left-column").height(($("#left-column").parent().innerHeight() - 2) + "px");     // needed for IE
-    $("#right-column").height(($("#right-column").parent().innerHeight() - 2) + "px");   // needed for IE
-    $(".CodeMirror").height(($(".CodeMirror").parent().parent().innerHeight() - 14) + "px");
-    $("#input").height(($("#input").parent().parent().innerHeight() - 14) + "px");
+    $("#left-column").height(`${$("#left-column").parent().innerHeight() - 2}px`);     // needed for IE
+    $("#right-column").height(`${$("#right-column").parent().innerHeight() - 2}px`);   // needed for IE
+    $(".CodeMirror").height(`${$(".CodeMirror").parent().parent().innerHeight() - 14}px`);
+    $("#input").height(`${$("#input").parent().parent().innerHeight() - 14}px`);
   }
 
   function getGrammar() {
@@ -203,7 +201,7 @@ $(document).ready(function() {
   $( "#parser-download" )
     .click(function(){
 
-      var blob = new Blob( [ $( "#parser-var" ).val() + " = " + parserSource + ";\n" ], { type: "application/javascript" } );
+      var blob = new Blob( [ `${$( "#parser-var" ).val()} = ${parserSource};\n` ], { type: "application/javascript" } );
       window.saveAs( blob, "parser.js" );
 
     });
