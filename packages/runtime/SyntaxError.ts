@@ -1,3 +1,5 @@
+import { SourceLocation } from "pegjs/typings/api"
+
 export class peg$SyntaxError extends Error {
   constructor(
     message: string,
@@ -103,4 +105,17 @@ export class peg$SyntaxError extends Error {
 
     return `Expected ${describeExpected(expected)} but ${describeFound(found)} found.`
   }
+}
+
+export function peg$buildSimpleError(message: string, location: SourceLocation) {
+  return new peg$SyntaxError(message, null, null, location)
+}
+
+export function peg$buildStructuredError(expected, found, location) {
+  return new peg$SyntaxError(
+    peg$SyntaxError.buildMessage(expected, found, location),
+    expected,
+    found,
+    location
+  )
 }

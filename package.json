@@ -13,7 +13,7 @@
     "benchmark": "node tools/benchmark",
     "build-parser": "pegjs -c src/pegjs.config.js",
     "lebab": "lebab --replace ./packages/pegjs/lib/parser.ts --transform arrow,multi-var,arrow-return,template,obj-shorthand",
-    "build-dist": "rollup -c ./tools/bundler/rollup.config.js",
+    "build-dist": "NODE_ENV=production rollup -c ./tools/bundler/rollup.config.js",
     "build-website": "node website/export",
     "clean": "rimraf public packages/pegjs/dist examples/*.js",
     "impact": "node tools/impact master",

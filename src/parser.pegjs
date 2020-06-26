@@ -25,7 +25,10 @@
     // Used as a shorthand property name for `LabeledExpression`
     let pick = true;
 
-    // Used by `LabelIdentifier` to disallow the use of certain words as labels
+    /**
+     * Used by `LabelIdentifier` to disallow the use of certain words as labels
+     * @type {Set<string>}
+     */
     const RESERVED_WORDS = new Set();
 
     // Populate `RESERVED_WORDS` using the optional option `reservedWords`
@@ -36,7 +39,11 @@
       });
     }
 
-    // Helper to construct a new AST Node
+    /**
+     * Helper to construct a new AST Node
+     * @template {string} T
+     * @param {T} type
+     */
     function createNode(type, details) {
       const node = new ast.Node(type, location());
       if (details === null) return node;
@@ -48,7 +55,11 @@
     // Used by `addComment` to store comments for the Grammar AST
     const comments = options.extractComments ? {} : null;
 
-    // Helper that collects all the comments to pass to the Grammar AST
+    /**
+     * Helper that collects all the comments to pass to the Grammar AST
+     * @param {string} text
+     * @param {boolean} multiline
+     */
     function addComment(text, multiline) {
       const loc = location()
       if (options.extractComments) {

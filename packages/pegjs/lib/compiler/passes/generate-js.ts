@@ -1,5 +1,5 @@
 /* eslint no-mixed-operators: 0, prefer-const: 0 */
-import { map, isString } from "lodash"
+import { map, isString, isEmpty } from "lodash"
 import type { Grammar } from "../../ast/Grammar"
 import type { Session } from "../session"
 import type { ICompilerPassOptions } from "../mod"
@@ -11,7 +11,7 @@ import { Rule } from "../../ast/Node"
 type StringGenerator = Generator<string | undefined, void, undefined>
 
 function assertString(value: any): string {
-  if (!isString(value)) {
+  if (process.env.NODE_ENV !== "production" && !isString(value)) {
     throw TypeError(`Expected string, got ${typeof value}`)
   }
   return value
@@ -146,15 +146,17 @@ export function generateJS(
   ): StringGenerator {
     yield `
       
-      let rule$expects = function (expected) {
-        if (peg$silentFails === 0) peg$expect(expected);
+      let rule$expects = (expected) =>{
+        if (peg$silentFails === 0) {
+          peg$expect(expected);
+        }
       };
       
     `
 
     if (options.trace) {
       yield `
-        peg$tracer.trace({
+        peg$tracer && peg$tracer.trace({
           type: "rule.enter",
           rule: ${ruleNameCode},
           location: peg$computeLocation(startPos, startPos)
@@ -166,10 +168,10 @@ export function generateJS(
     if (options.cache) {
       yield `
         let key = peg$currPos * ${ast.rules.length} + ${ruleIndexCode};
-        let cached = peg$resultsCache[key];
+        let cached = peg$resultsCache.get(key);
         let rule$expectations = [];
         
-        rule$expects = function (expected) {
+        rule$expects = (expected) => {
           if (peg$silentFails === 0) peg$expect(expected);
           rule$expectations.push(expected);
         }
@@ -193,14 +195,14 @@ export function generateJS(
       if (options.trace) {
         yield `
           if (cached.result !== peg$FAILED) {
-            peg$tracer.trace({
+            peg$tracer && peg$tracer.trace({
               type: "rule.match",
               rule: ${ruleNameCode},
               result: cached.result,
               location: peg$computeLocation(startPos, peg$currPos)
             });
           } else {
-            peg$tracer.trace({
+            peg$tracer && peg$tracer.trace({
               type: "rule.fail",
               rule: ${ruleNameCode},
               location: peg$computeLocation(startPos, startPos)
@@ -218,11 +220,11 @@ export function generateJS(
     if (options.cache) {
       yield `
           
-          peg$resultsCache[key] = {
+          peg$resultsCache.set(key, {
             nextPos: peg$currPos,
             result: ${resultCode},
             expectations: rule$expectations
-          };
+          });
         `
     }
 
@@ -230,14 +232,14 @@ export function generateJS(
       yield `
           
           if (${resultCode} !== peg$FAILED) {
-            peg$tracer.trace({
+            peg$tracer && peg$tracer.trace({
               type: "rule.match",
               rule: ${ruleNameCode},
               result: ${resultCode},
               location: peg$computeLocation(startPos, peg$currPos)
             });
           } else {
-            peg$tracer.trace({
+            peg$tracer && peg$tracer.trace({
               type: "rule.fail",
               rule: ${ruleNameCode},
               location: peg$computeLocation(startPos, startPos)
@@ -901,16 +903,16 @@ export function generateJS(
   }
 
   function* generateTopLevel(): StringGenerator {
-    if (options.trace) {
-      if (!use("DefaultTracer"))
-        yield `
-          const peg$FauxTracer = {
-            trace(event) { }
-          }
-        `
-    }
-
     yield `
+      /**
+       * @param {string} input
+       * @param {Object} options
+       * @param {"size"|"speed"=} options.optimize
+       * @param {string[]=} options.allowedStartRules
+       * @param {boolean=} options.cache
+       * @param {boolean=} options.trace
+       * @param {string=} options.filename
+       */
       function peg$parse(input, options = {}) {
         const peg$FAILED = Symbol();
       
@@ -923,7 +925,7 @@ export function generateJS(
       const startRuleIndex = ast.indexOfRule(options.allowedStartRules[0])
 
       yield `
-        let peg$startRuleIndices = ${startRuleIndices};
+        const peg$startRuleIndices = ${startRuleIndices};
         let peg$startRuleIndex = ${startRuleIndex};
       `
     } else {
@@ -933,7 +935,7 @@ export function generateJS(
       const startRuleFunction = `peg$parse${options.allowedStartRules[0]}`
 
       yield `
-          let peg$startRuleFunctions = ${startRuleFunctions};
+          const peg$startRuleFunctions = ${startRuleFunctions};
           let peg$startRuleFunction = ${startRuleFunction};
       `
     }
@@ -946,14 +948,14 @@ export function generateJS(
       
         let peg$currPos = 0;
         let peg$savedPos = 0;
-        let peg$posDetailsCache = [{ line: 1, column: 1 }];
-        let peg$expected = [];
+        const peg$posDetailsCache = [{ line: 1, column: 1 }];
+        const peg$expected = [];
         let peg$silentFails = 0; // 0 = report failures, > 0 = silence failures
       
     `
 
     if (options.cache) {
-      yield "  let peg$resultsCache = {};"
+      yield "  const peg$resultsCache = new Map();"
       yield
     }
 
@@ -961,15 +963,15 @@ export function generateJS(
       if (options.optimize === "size") {
         const ruleNames = `[${ast.rules.map(r => JSON.stringify(r.name)).join(", ")}]`
 
-        yield `  let peg$ruleNames = ${ruleNames};`
+        yield `  const peg$ruleNames = ${ruleNames};`
         yield
       }
 
       if (use("DefaultTracer")) {
-        yield '  let peg$tracer = "tracer" in options ? options.tracer : new peg$DefaultTracer();'
+        yield "  const peg$tracer = options.tracer || new peg$DefaultTracer();"
         yield
       } else {
-        yield '  let peg$tracer = "tracer" in options ? options.tracer : peg$FauxTracer;'
+        yield "  const peg$tracer = options.tracer"
         yield
       }
     }
@@ -1033,11 +1035,10 @@ export function generateJS(
 
     if (use("expected")) {
       yield `
-        function expected(description, location) {
-          location = location !== undefined
-            ? location
-            : peg$computeLocation(peg$savedPos, peg$currPos);
-      
+        /**
+         * @param {string} description
+         */
+        function expected(description, location = peg$computeLocation(peg$savedPos, peg$currPos)) {
           throw peg$buildStructuredError(
             [peg$otherExpectation(description)],
             input.substring(peg$savedPos, peg$currPos),
@@ -1050,106 +1051,81 @@ export function generateJS(
     if (use("error")) {
       yield `
         
-          function error(message, location) {
-            location = location !== undefined
-              ? location
-              : peg$computeLocation(peg$savedPos, peg$currPos);
-        
+          /**
+           * @param {string} message
+           */
+          function error(message, location = peg$computeLocation(peg$savedPos, peg$currPos)) {
             throw peg$buildSimpleError(message, location);
           }
       `
     }
 
-    /*
-        ].join("\n")
-      )
-    }
-
-    parts.push(
-        [
-          "",
-    */
-
     yield `
-      function peg$literalExpectation(text, ignoreCase) {
-        return { type: "literal", text, ignoreCase };
-      }
-    
-      function peg$classExpectation(parts, inverted, ignoreCase) {
-        return { type: "class", parts, inverted, ignoreCase };
-      }
-    
-      function peg$anyExpectation() {
-        return { type: "any" };
-      }
-    
-      function peg$endExpectation() {
-        return { type: "end" };
-      }
-    
-      function peg$otherExpectation(description) {
-        return { type: "other", description };
-      }
-    
-      function peg$computePosDetails(pos) {
+      /**
+       * @param {number} pos
+       */
+      function peg$getPosDetails(pos) {
         let details = peg$posDetailsCache[pos];
-    
-        if (details) {
-          return details;
-        } else {
-          let p = pos - 1;
-          while (!peg$posDetailsCache[p]) {
-            p--;
-          }
-    
-          details = peg$posDetailsCache[p];
-          details = {
-            line: details.line,
-            column: details.column
-          };
-    
-          while (p < pos) {
-            if (input.charCodeAt(p) === 10) {
-              details.line++;
-              details.column = 1;
-            } else {
-              details.column++;
-            }
-    
-            p++;
-          }
-    
-          peg$posDetailsCache[pos] = details;
-    
-          return details;
+        if (details == null) {
+          details = peg$posDetailsCache[pos] = peg$computePosDetails(pos)
         }
+        return details
+      }
+    
+      /**
+       * @param {number} pos
+       */
+      function peg$computePosDetails(pos) {
+        let p = pos - 1;
+        while (!peg$posDetailsCache[p]) {
+          p--;
+        }
+  
+        let { line, column } = peg$posDetailsCache[p];
+
+        while (p < pos) {
+          if (input[p] === "\\n") {
+            line++;
+            column = 1;
+          } else {
+            column++;
+          }
+  
+          p++;
+        }
+  
+        return { line, column };
       }
     `
 
     if (use("filename")) {
-      yield '  let peg$VALIDFILENAME = typeof options.filename === "string" && options.filename.length > 0;'
+      yield '  const peg$VALID_FILENAME = typeof options.filename === "string" && options.filename.length > 0;'
     }
 
     yield `
+      /**
+       * @param {number} startPos
+       * @param {number} endPos
+       */
       function peg$computeLocation(startPos, endPos) {
         const loc = {};
     `
 
     if (use("filename")) {
-      yield `if (peg$VALIDFILENAME) {
+      yield `if (peg$VALID_FILENAME) {
         loc.filename = options.filename;
       }`
     }
 
     yield `
-        const startPosDetails = peg$computePosDetails(startPos);
+        const startPosDetails = peg$getPosDetails(startPos);
         loc.start = {
           offset: startPos,
           line: startPosDetails.line,
           column: startPosDetails.column
         };
     
-        const endPosDetails = peg$computePosDetails(endPos);
+        const endPosDetails = peg$getPosDetails(endPos);
         loc.end = {
           offset: endPos,
           line: endPosDetails.line,
@@ -1175,7 +1151,10 @@ export function generateJS(
     
         top.variants.push(expected);
       }
-        
+      
+      /**
+       * @param {boolean} invert
+       */
       function peg$end(invert) {
         const expected = peg$expected.pop();
         const top = peg$expected[peg$expected.length - 1];
@@ -1189,20 +1168,7 @@ export function generateJS(
           );
         }
     
-        Array.prototype.push.apply(top.variants, variants);
-      }
-    
-      function peg$buildSimpleError(message, location) {
-        return new peg$SyntaxError(message, null, null, location);
-      }
-        
-      function peg$buildStructuredError(expected, found, location) {
-        return new peg$SyntaxError(
-          peg$SyntaxError.buildMessage(expected, found, location),
-          expected,
-          found,
-          location
-        );
+        top.variants.push(...variants);
       }
     
       function peg$buildError() {
@@ -1257,20 +1223,18 @@ export function generateJS(
   }
 
   function generateWrapper(topLevelCode: StringGenerator): StringGenerator {
-    function generateHeaderComment() {
-      let comment = `// Generated by PEG.js v${VERSION}, https://pegjs.org/`
+    function* generateHeaderComment(): StringGenerator {
+      yield `// Generated by PEG.js v${VERSION}, https://pegjs.org/`
       const header = options.header
 
-      if (typeof header === "string") {
-        comment += `\n\n${header}`
+      if (isString(header)) {
+        yield `\n\n${header}`
       } else if (Array.isArray(header)) {
-        comment += "\n\n"
-        header.forEach(data => {
-          comment += `// ${data}`
-        })
+        yield "\n\n"
+        for (const data of header) {
+          yield `// ${data}`
+        }
       }
-
-      return comment
     }
 
     function generateParserObject() {
@@ -1301,16 +1265,27 @@ export function generateJS(
 
     const generators = {
       *commonjs(): StringGenerator {
-        yield `const { peg$SyntaxError } = require("@pegjs/runtime/SyntaxError");`
-        yield `const { peg$DefaultTracer } = require("@pegjs/runtime/DefaultTracer");`
-        const dependencyVars = Object.keys(options.dependencies)
+        yield* generateHeaderComment()
+        yield `const {
+            peg$SyntaxError,
+            peg$buildSimpleError,
+            peg$buildStructuredError,
+          } = require("@pegjs/runtime/SyntaxError");
+          const { peg$DefaultTracer } = require("@pegjs/runtime/DefaultTracer");
+          const {
+            peg$literalExpectation,
+            peg$classExpectation,
+            peg$anyExpectation,
+            peg$endExpectation,
+            peg$otherExpectation,       
+          } = require("@pegjs/runtime/expectation");
+        `
 
-        yield generateHeaderComment()
         yield
         yield '"use strict";'
         yield
 
-        if (dependencyVars.length) {
+        if (!isEmpty(options.dependencies)) {
           yield* map(
             options.dependencies,
             (value, variable) => `const ${variable} = require(${JSON.stringify(value)});`
@@ -1325,14 +1300,25 @@ export function generateJS(
       },
 
       *es(): StringGenerator {
-        yield `import { peg$SyntaxError } from "@pegjs/runtime/SyntaxError";`
-        yield `import { peg$DefaultTracer } from "@pegjs/runtime/DefaultTracer";`
-        const dependencyKeys = Object.keys(options.dependencies)
+        yield* generateHeaderComment()
+        yield `import {
+            peg$SyntaxError,
+            peg$buildSimpleError,
+            peg$buildStructuredError,
+          } from "@pegjs/runtime/SyntaxError";
+          import { peg$DefaultTracer } from "@pegjs/runtime/DefaultTracer";
+          import {
+            peg$literalExpectation,
+            peg$classExpectation,
+            peg$anyExpectation,
+            peg$endExpectation,
+            peg$otherExpectation,       
+          } from "@pegjs/runtime/expectation";
+        `
 
-        yield generateHeaderComment()
         yield
 
-        if (dependencyKeys.length) {
+        if (!isEmpty(options.dependencies)) {
           yield* map(
             options.dependencies,
             (value, variable) => `import * as ${variable} from ${JSON.stringify(value)};`
