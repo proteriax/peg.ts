@@ -16,20 +16,20 @@ import type { SourceLocation } from "../../typings/generated-parser"
 export class Grammar extends Node {
   // Default properties and methods
 
-  private readonly _alwaysConsumesOnSuccess: any
-  type: "grammar"
-  comments?: CommentMap
-  initializer?: Initializer
-  rules: Rule[]
+  private readonly _alwaysConsumesOnSuccess: AlwaysConsumesOnSuccess
+  declare type: "grammar"
+  declare comments?: CommentMap
+  declare initializer?: Initializer
+  declare rules: Rule[]
 
   // Added by Bytecode generator
-  literals: string[]
-  classes: string[]
-  expectations: string[]
-  functions: string[]
+  declare literals: string[]
+  declare classes: string[]
+  declare expectations: string[]
+  declare functions: string[]
 
   // Added by JavaScript generator
-  code?: string
+  declare code?: string
 
   // Creates a new AST
 
@@ -49,7 +49,7 @@ export class Grammar extends Node {
     this._alwaysConsumesOnSuccess = new AlwaysConsumesOnSuccess(this)
   }
 
-  alwaysConsumesOnSuccess(node: Object): boolean {
+  alwaysConsumesOnSuccess(node: INode): boolean {
     return this._alwaysConsumesOnSuccess.visit(node)
   }
 
@@ -78,7 +78,7 @@ class AlwaysConsumesOnSuccess extends ASTVisitor<boolean> {
   }
 
   rule_ref(node: RuleReferenceExpression) {
-    return this.visit(this.ast.findRule(node.name))
+    return this.visit(this.ast.findRule(node.name)!)
   }
 
   literal(node: LiteralMatcher) {

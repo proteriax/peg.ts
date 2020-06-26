@@ -72,13 +72,16 @@ describe("generated parser API", () => {
           try {
             parser.parse("b")
 
-            if (typeof console === "object") {
-              expect(log.callCount).to.equal(messages.length)
-              messages.forEach((message, index) => {
-                const call = log.getCall(index)
-                expect(call.calledWithExactly(message)).to.equal(true)
-              })
-            }
+            expect(log.callCount).to.equal(messages.length)
+            messages.forEach((message, index) => {
+              const call = log.getCall(index)
+              expect(call.calledWithExactly(message)).to.equal(
+                true,
+                `expected to be called with ${JSON.stringify(
+                  message
+                )}, got ${JSON.stringify(call.args[0])}`
+              )
+            })
           } finally {
             log.restore()
           }

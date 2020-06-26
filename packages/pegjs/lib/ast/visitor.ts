@@ -10,7 +10,7 @@ export interface Initializer extends INode {
 
 // Abstract syntax tree visitor for PEG.js
 export class ASTVisitor<U> implements IVisitorMap<U> {
-  constructor(visitors: Partial<ASTVisitor<U>>) {
+  constructor(visitors?: Partial<ASTVisitor<U>>) {
     Object.assign(this, visitors)
     this.visit = this.visit.bind(this)
   }
@@ -26,7 +26,7 @@ export class ASTVisitor<U> implements IVisitorMap<U> {
 
     // istanbul ignore next
     if (!fn) {
-      console.log(this)
+      console.debug(node)
       throw new Error(`Visitor function for node type "${node.type}" not defined`)
     }
 

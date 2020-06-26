@@ -290,7 +290,7 @@ declare namespace peg {
    * The PEG.js compiler.
    */
   namespace compiler {
-    type FormatOptions = "amd" | "bare" | "commonjs" | "es" | "globals" | "umd"
+    type FormatOptions = "amd" | "commonjs" | "es" | "globals" | "umd"
     type OptimizeOptions = "size" | "speed"
     type OutputOptions = "parser" | "source"
 

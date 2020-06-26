@@ -12,6 +12,7 @@
     "PEG"
   ],
   "dependencies": {
+    "@pegjs/runtime": "*",
     "esm": "3.2.25",
     "lodash": "^4.17.15"
   },
@@ -26,7 +27,7 @@
     "Futago-za Ryuu <futagoza.ryuu@gmail.com>"
   ],
   "main": "lib/mod.ts",
-  "bin": "bin/peg.cjs.js",
+  "bin": "bin/peg.js",
   "engines": {
     "node": ">= 8"
   }

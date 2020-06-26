@@ -14,11 +14,12 @@ import { reportIncorrectPlucking } from "./passes/report-incorrect-plucking"
 import { Grammar } from "../ast/Grammar"
 import type { Session } from "./session"
 import { IStageMap } from "../util/mod"
+import { transpile } from "../typescript"
 export { opcodes } from "./opcodes"
 
 export { Session } from "./session"
 
-type FormatOptions = "amd" | "bare" | "commonjs" | "es" | "globals" | "umd"
+type FormatOptions = "commonjs" | "es"
 type OptimizeOptions = "size" | "speed"
 export type OutputOptions = "parser" | "source"
 
@@ -104,7 +105,7 @@ export function compile(ast: Grammar, session: Session, options: ICompilerOption
     cache: false,
     context: {},
     dependencies: {},
-    format: "bare",
+    format: "commonjs",
     optimize: "speed",
     output: "parser",
     trace: false,
@@ -113,7 +114,7 @@ export function compile(ast: Grammar, session: Session, options: ICompilerOption
 
   // We want `session.vm.evalModule` to return the parser
   if (options.output === "parser") {
-    options.format = "umd"
+    options.format = "commonjs"
   }
 
   forEach(session.passes, stage => {
@@ -123,8 +124,10 @@ export function compile(ast: Grammar, session: Session, options: ICompilerOption
   })
 
   switch (options.output) {
-    case "parser":
-      return session.vm.evalModule(ast.code!, options.context)
+    case "parser": {
+      const js = ast.code! // transpile(ast.code!)
+      return session.vm.evalModule(js, options.context)
+    }
     case "source":
       return ast.code
     default:

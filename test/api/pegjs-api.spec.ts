@@ -1,6 +1,7 @@
 import { expect } from "chai"
 import * as peg from "pegjs"
 import sinon from "sinon"
+import { transpile } from "pegjs/lib/typescript"
 
 describe("PEG.js API", () => {
   describe("generate", () => {
@@ -192,17 +193,9 @@ describe("PEG.js API", () => {
 
       describe('when |output| is set to |"source"|', () => {
         it("returns generated parser source code", async () => {
-          const { transpileModule, ModuleKind } = await import("typescript")
           const source = peg.generate(grammar, { output: "source" })
-
           expect(source).to.be.a("string")
-
-          const js = transpileModule(source, {
-            compilerOptions: {
-              module: ModuleKind.CommonJS,
-            },
-          })
-          expect(eval(js.outputText).parse("a")).to.equal("a")
+          expect(eval(transpile(source)).parse("a")).to.equal("a")
         })
       })
     })

@@ -8,8 +8,8 @@ export function evalModule(source: string, context: { [key: string]: any }) {
   const argumentValues = Object.values(context)
 
   const module = { exports: {} }
-  argumentKeys.push("module", "exports", source)
-  argumentValues.push(module, module.exports)
+  argumentKeys.push("module", "exports", "require", source)
+  argumentValues.push(module, module.exports, require)
 
   Function(...argumentKeys)(...argumentValues)
 

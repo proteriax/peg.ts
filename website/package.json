@@ -1,16 +1,16 @@
 {
-    "name": "@pegjs/website",
-    "version": "2.0.0",
-    "private": true,
-    "dependencies": {
-        "@futagoza/child-process": "1.0.0",
-        "@tache/is-source-newer": "1.0.0-beta.5",
-        "bluebird": "3.7.1",
-        "fs-extra-plus": "0.5.11"
-    },
-    "devDependencies": {
-        "@types/body-parser": "^1.19.0",
-        "@types/express": "^4.17.6",
-        "@types/morgan": "^1.9.1"
-    }
+  "name": "@pegjs/website",
+  "version": "2.0.0",
+  "private": true,
+  "dependencies": {
+    "@futagoza/child-process": "1.0.0",
+    "@tache/is-source-newer": "1.0.0-beta.5",
+    "bluebird": "3.7.1",
+    "fs-extra-plus": "0.5.11"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.0",
+    "@types/express": "^4.17.6",
+    "@types/morgan": "^1.9.1"
+  }
 }

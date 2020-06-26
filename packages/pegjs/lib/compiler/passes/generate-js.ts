@@ -937,200 +937,11 @@ export function generateJS(
     return parts.join("\n")
   }
 
-  function generateToplevel() {
+  function generateTopLevel() {
     const parts: string[] = []
 
-    parts.push(
-      [
-        "function peg$subclass(child, parent) {",
-        "  function C() { this.constructor = child; }",
-        "  C.prototype = parent.prototype;",
-        "  child.prototype = new C();",
-        "}",
-        "",
-        "function peg$SyntaxError(message, expected, found, location) {",
-        "  this.message = message;",
-        "  this.expected = expected;",
-        "  this.found = found;",
-        "  this.location = location;",
-        '  this.name = "SyntaxError";',
-        "",
-        "  // istanbul ignore next",
-        '  if (typeof Error.captureStackTrace === "function") {',
-        "    Error.captureStackTrace(this, peg$SyntaxError);",
-        "  }",
-        "}",
-        "",
-        "peg$subclass(peg$SyntaxError, Error);",
-        "",
-        "peg$SyntaxError.buildMessage = function(expected, found, location) {",
-        "  var DESCRIBE_EXPECTATION_FNS = {",
-        "    literal: function(expectation) {",
-        '      return "\\"" + literalEscape(expectation.text) + "\\"";',
-        "    },",
-        "",
-        "    class: function(expectation) {",
-        "      var escapedParts = expectation.parts.map(function(part) {",
-        "        return Array.isArray(part)",
-        '          ? classEscape(part[0]) + "-" + classEscape(part[1])',
-        "          : classEscape(part);",
-        "      });",
-        "",
-        '      return "[" + (expectation.inverted ? "^" : "") + escapedParts + "]";',
-        "    },",
-        "",
-        "    any: function() {",
-        '      return "any character";',
-        "    },",
-        "",
-        "    end: function() {",
-        '      return "end of input";',
-        "    },",
-        "",
-        "    other: function(expectation) {",
-        "      return expectation.description;",
-        "    },",
-        "",
-        "    not: function(expectation) {",
-        '      return "not " + describeExpectation(expectation.expected);',
-        "    }",
-        "  };",
-        "",
-        "  function hex(ch) {",
-        "    return ch.charCodeAt(0).toString(16).toUpperCase();",
-        "  }",
-        "",
-        "  function literalEscape(s) {",
-        "    return s",
-        '      .replace(/\\\\/g, "\\\\\\\\")', // backslash
-        '      .replace(/"/g,  "\\\\\\"")', // closing double quote
-        '      .replace(/\\0/g, "\\\\0")', // null
-        '      .replace(/\\t/g, "\\\\t")', // horizontal tab
-        '      .replace(/\\n/g, "\\\\n")', // line feed
-        '      .replace(/\\r/g, "\\\\r")', // carriage return
-        '      .replace(/[\\x00-\\x0F]/g,          function(ch) { return "\\\\x0" + hex(ch); })',
-        '      .replace(/[\\x10-\\x1F\\x7F-\\x9F]/g, function(ch) { return "\\\\x"  + hex(ch); });',
-        "  }",
-        "",
-        "  function classEscape(s) {",
-        "    return s",
-        '      .replace(/\\\\/g, "\\\\\\\\")', // backslash
-        '      .replace(/\\]/g, "\\\\]")', // closing bracket
-        '      .replace(/\\^/g, "\\\\^")', // caret
-        '      .replace(/-/g,  "\\\\-")', // dash
-        '      .replace(/\\0/g, "\\\\0")', // null
-        '      .replace(/\\t/g, "\\\\t")', // horizontal tab
-        '      .replace(/\\n/g, "\\\\n")', // line feed
-        '      .replace(/\\r/g, "\\\\r")', // carriage return
-        '      .replace(/[\\x00-\\x0F]/g,          function(ch) { return "\\\\x0" + hex(ch); })',
-        '      .replace(/[\\x10-\\x1F\\x7F-\\x9F]/g, function(ch) { return "\\\\x"  + hex(ch); });',
-        "  }",
-        "",
-        "  function describeExpectation(expectation) {",
-        "    return DESCRIBE_EXPECTATION_FNS[expectation.type](expectation);",
-        "  }",
-        "",
-        "  function describeExpected(expected) {",
-        "    var descriptions = expected.map(describeExpectation);",
-        "    var i, j;",
-        "",
-        "    descriptions.sort();",
-        "",
-        "    if (descriptions.length > 0) {",
-        "      for (i = 1, j = 1; i < descriptions.length; i++) {",
-        "        if (descriptions[i - 1] !== descriptions[i]) {",
-        "          descriptions[j] = descriptions[i];",
-        "          j++;",
-        "        }",
-        "      }",
-        "      descriptions.length = j;",
-        "    }",
-        "",
-        "    switch (descriptions.length) {",
-        "      case 1:",
-        "        return descriptions[0];",
-        "",
-        "      case 2:",
-        '        return descriptions[0] + " or " + descriptions[1];',
-        "",
-        "      default:",
-        '        return descriptions.slice(0, -1).join(", ")',
-        '          + ", or "',
-        "          + descriptions[descriptions.length - 1];",
-        "    }",
-        "  }",
-        "",
-        "  function describeFound(found) {",
-        '    return found ? "\\"" + literalEscape(found) + "\\"" : "end of input";',
-        "  }",
-        "",
-        '  return "Expected " + describeExpected(expected) + " but " + describeFound(found) + " found.";',
-        "};",
-        "",
-      ].join("\n")
-    )
-
     if (options.trace) {
-      if (use("DefaultTracer"))
-        parts.push(
-          [
-            "function peg$DefaultTracer() {",
-            "  this.indentLevel = 0;",
-            "}",
-            "",
-            "peg$DefaultTracer.prototype.trace = function(event) {",
-            "  var that = this;",
-            "",
-            "  function log(event) {",
-            "    function repeat(string, n) {",
-            '       var result = "", i;',
-            "",
-            "       for (i = 0; i < n; i++) {",
-            "         result += string;",
-            "       }",
-            "",
-            "       return result;",
-            "    }",
-            "",
-            "    function pad(string, length) {",
-            '      return string + repeat(" ", length - string.length);',
-            "    }",
-            "",
-            '    if (typeof console === "object") {', // IE 8-10
-            "      console.log(",
-            '        event.location.start.line + ":" + event.location.start.column + "-"',
-            '          + event.location.end.line + ":" + event.location.end.column + " "',
-            '          + pad(event.type, 10) + " "',
-            '          + repeat("  ", that.indentLevel) + event.rule',
-            "      );",
-            "    }",
-            "  }",
-            "",
-            "  switch (event.type) {",
-            '    case "rule.enter":',
-            "      log(event);",
-            "      this.indentLevel++;",
-            "      break;",
-            "",
-            '    case "rule.match":',
-            "      this.indentLevel--;",
-            "      log(event);",
-            "      break;",
-            "",
-            '    case "rule.fail":',
-            "      this.indentLevel--;",
-            "      log(event);",
-            "      break;",
-            "",
-            "    // istanbul ignore next",
-            "    default:",
-            '      throw new Error("Invalid event type: " + event.type + ".");',
-            "  }",
-            "};",
-            "",
-          ].join("\n")
-        )
-      else
+      if (!use("DefaultTracer"))
         parts.push(
           ["var peg$FauxTracer = {", "  trace: function(event) { }", "};", ""].join("\n")
         )
@@ -1507,7 +1318,7 @@ export function generateJS(
     return parts.join("\n")
   }
 
-  function generateWrapper(toplevelCode) {
+  function generateWrapper(topLevelCode) {
     function generateHeaderComment() {
       let comment = `// Generated by PEG.js v${VERSION}, https://pegjs.org/`
       const header = options.header
@@ -1551,21 +1362,11 @@ export function generateJS(
     }
 
     const generators = {
-      bare() {
-        return [
-          generateHeaderComment(),
-          "(function() {",
-          '  "use strict";',
-          "",
-          indent2(toplevelCode),
-          "",
-          indent2(`return ${generateParserObject()};`),
-          "})()",
-        ].join("\n")
-      },
-
       commonjs() {
-        const parts: string[] = []
+        const parts: string[] = [
+          `var peg$SyntaxError = require("@pegjs/runtime/SyntaxError").default;`,
+          `var peg$DefaultTracer = require("@pegjs/runtime/DefaultTracer").default;`,
+        ]
         const dependencyVars = Object.keys(options.dependencies)
 
         parts.push([generateHeaderComment(), "", '"use strict";', ""].join("\n"))
@@ -1582,14 +1383,17 @@ export function generateJS(
         }
 
         parts.push(
-          [toplevelCode, "", `module.exports = ${generateParserObject()};`, ""].join("\n")
+          [topLevelCode, "", `module.exports = ${generateParserObject()};`, ""].join("\n")
         )
 
         return parts.join("\n")
       },
 
       es() {
-        const parts: string[] = []
+        const parts: string[] = [
+          `import peg$SyntaxError from "@pegjs/runtime/SyntaxError";`,
+          `import peg$DefaultTracer from "@pegjs/runtime/DefaultTracer";`,
+        ]
         const dependencyVars = Object.keys(options.dependencies)
 
         parts.push(generateHeaderComment(), "")
@@ -1597,7 +1401,7 @@ export function generateJS(
         if (dependencyVars.length > 0) {
           dependencyVars.forEach(variable => {
             parts.push(
-              `import ${variable} from "${util.stringEscape(
+              `import * as ${variable} from "${util.stringEscape(
                 options.dependencies[variable]
               )}";`
             )
@@ -1606,7 +1410,7 @@ export function generateJS(
         }
 
         parts.push(
-          toplevelCode,
+          topLevelCode,
           "",
           `export ${generateParserExports()};`,
           "",
@@ -1616,92 +1420,9 @@ export function generateJS(
 
         return parts.join("\n")
       },
-
-      amd() {
-        const dependencyVars = Object.keys(options.dependencies)
-        const dependencyIds = dependencyVars.map(v => options.dependencies[v])
-        const dependencies = `[${dependencyIds
-          .map(id => `"${util.stringEscape(id)}"`)
-          .join(", ")}]`
-        const params = dependencyVars.join(", ")
-
-        return [
-          generateHeaderComment(),
-          `define(${dependencies}, function(${params}) {`,
-          '  "use strict";',
-          "",
-          indent2(toplevelCode),
-          "",
-          indent2(`return ${generateParserObject()};`),
-          "});",
-          "",
-        ].join("\n")
-      },
-
-      globals() {
-        return [
-          generateHeaderComment(),
-          "(function(root) {",
-          '  "use strict";',
-          "",
-          indent2(toplevelCode),
-          "",
-          indent2(`root.${options.exportVar} = ${generateParserObject()};`),
-          "})(this);",
-          "",
-        ].join("\n")
-      },
-
-      umd() {
-        const parts: string[] = []
-        const dependencyVars = Object.keys(options.dependencies)
-        const dependencyIds = dependencyVars.map(v => options.dependencies[v])
-        const dependencies = `[${dependencyIds
-          .map(id => `"${util.stringEscape(id)}"`)
-          .join(", ")}]`
-        const requires = dependencyIds
-          .map(id => `require("${util.stringEscape(id)}")`)
-          .join(", ")
-        const args = dependencyVars.map(v => `root.${v}`).join(", ")
-        const params = dependencyVars.join(", ")
-
-        parts.push(
-          [
-            generateHeaderComment(),
-            "(function(root, factory) {",
-            '  if (typeof define === "function" && define.amd) {',
-            `    define(${dependencies}, factory);`,
-            '  } else if (typeof module === "object" && module.exports) {',
-            `    module.exports = factory(${requires});`,
-          ].join("\n")
-        )
-
-        if (options.exportVar !== null) {
-          parts.push(
-            ["  } else {", `    root.${options.exportVar} = factory(${args});`].join("\n")
-          )
-        }
-
-        parts.push(
-          [
-            "  }",
-            `})(this, function(${params}) {`,
-            '  "use strict";',
-            "",
-            indent2(toplevelCode),
-            "",
-            indent2(`return ${generateParserObject()};`),
-            "});",
-            "",
-          ].join("\n")
-        )
-
-        return parts.join("\n")
-      },
     }
-
     return generators[options.format]()
   }
 
-  ast.code = generateWrapper(generateToplevel())
+  ast.code = generateWrapper(generateTopLevel())
 }

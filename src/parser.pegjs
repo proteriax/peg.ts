@@ -22,18 +22,17 @@
 // [1] http://www.ecma-international.org/publications/standards/Ecma-262.htm
 
 {
-
     // Used as a shorthand property name for `LabeledExpression`
     const pick = true;
 
     // Used by `LabelIdentifier` to disallow the use of certain words as labels
-    const RESERVED_WORDS = {};
+    const RESERVED_WORDS = new Set();
 
     // Populate `RESERVED_WORDS` using the optional option `reservedWords`
     const reservedWords = options.reservedWords || util.reservedWords;
     if (Array.isArray(reservedWords)) {
       reservedWords.forEach(word => {
-        RESERVED_WORDS[word] = true;
+        RESERVED_WORDS.add(word)
       });
     }
 
@@ -51,42 +50,40 @@
 
     // Helper that collects all the comments to pass to the Grammar AST
     function addComment(text, multiline) {
+      const loc = location()
       if (options.extractComments) {
         comments[loc.start.offset] = {
           text,
           multiline,
-          location: location(),
+          location: loc,
         };
       }
       return text;
     }
-
 }
 
 // ---- Syntactic Grammar -----
 
 Grammar
   = __ initializer:(@Initializer __)? rules:(@Rule __)+ {
-        return new ast.Grammar( initializer, rules, comments, location() );
+        return new ast.Grammar(initializer, rules, comments, location());
     }
 
 Initializer
   = code:CodeBlock EOS {
-        return createNode( "initializer", { code } );
+        return createNode("initializer", { code });
     }
 
 Rule
   = name:Identifier __ displayName:(@StringLiteral __)? "=" __ expression:Expression EOS {
-
         if (displayName) {
-            expression = createNode("named", {
-                name: displayName,
-                expression,
-            });
+          expression = createNode("named", {
+            name: displayName,
+            expression,
+          });
         }
 
         return createNode("rule", { name, expression });
-
     }
 
 Expression
@@ -94,66 +91,49 @@ Expression
 
 ChoiceExpression
   = head:ActionExpression tail:(__ "/" __ @ActionExpression)* {
+      if (tail.length === 0) return head;
 
-        if (tail.length === 0) return head;
-
-        return createNode("choice", {
-            alternatives: [head].concat(tail),
-        });
-
+      return createNode("choice", {
+        alternatives: [head].concat(tail),
+      });
     }
 
 ActionExpression
   = expression:SequenceExpression code:(__ @CodeBlock)? {
-
-        if (code === null) return expression;
-
-        return createNode("action", { expression, code });
-
+      if (code === null) return expression;
+      return createNode("action", { expression, code });
     }
 
 SequenceExpression
   = head:LabeledExpression tail:(__ @LabeledExpression)* {
+      let elements = [head];
 
-        let elements = [head];
-
-        if (tail.length === 0) {
-            if (head.type !== "labeled" || !head.pick) return head;
-        } else {
-            elements = elements.concat(tail);
-        }
-
-        return createNode("sequence", { elements });
-
+      if (tail.length === 0) {
+        if (head.type !== "labeled" || !head.pick) return head;
+      } else {
+        elements = elements.concat(tail);
+      }
+      return createNode("sequence", { elements });
     }
 
 LabeledExpression
   = "@" label:LabelIdentifier? __ expression:PrefixedExpression {
-
         return createNode("labeled", { pick, label, expression });
-
     }
   / label:LabelIdentifier __ expression:PrefixedExpression {
-
         return createNode("labeled", { label, expression });
-
     }
   / PrefixedExpression
 
 LabelIdentifier
   = name:Identifier __ ":" {
-
-        if (RESERVED_WORDS[name] !== true) return name;
-
-        error( `Label can't be a reserved word "${ name }".`, location());
-
+        if (!RESERVED_WORDS.has(name)) return name;
+        error(`Label can't be a reserved word "${name}".`, location());
     }
 
 PrefixedExpression
   = operator:PrefixedOperator __ expression:SuffixedExpression {
-
         return createNode(operator, { expression });
-
     }
   / SuffixedExpression
 
@@ -164,9 +144,7 @@ PrefixedOperator
 
 SuffixedExpression
   = expression:PrimaryExpression __ operator:SuffixedOperator {
-
         return createNode(operator, { expression });
-
     }
   / PrimaryExpression
 
@@ -182,29 +160,23 @@ PrimaryExpression
   / RuleReferenceExpression
   / SemanticPredicateExpression
   / "(" __ e:Expression __ ")" {
+      // The purpose of the "group" AST node is just to isolate label scope. We
+      // don't need to put it around nodes that can't contain any labels or
+      // nodes that already isolate label scope themselves.
+      if (e.type !== "labeled" && e.type !== "sequence") return e;
 
-        // The purpose of the "group" AST node is just to isolate label scope. We
-        // don't need to put it around nodes that can't contain any labels or
-        // nodes that already isolate label scope themselves.
-        if (e.type !== "labeled" && e.type !== "sequence") return e;
-
-        // This leaves us with "labeled" and "sequence".
-        return createNode("group", { expression: e });
-
+      // This leaves us with "labeled" and "sequence".
+      return createNode("group", { expression: e });
     }
 
 RuleReferenceExpression
   = name:Identifier !(__ (StringLiteral __)? "=") {
-
         return createNode("rule_ref", { name });
-
     }
 
 SemanticPredicateExpression
   = operator:SemanticPredicateOperator __ code:CodeBlock {
-
         return createNode(operator, { code });
-
     }
 
 SemanticPredicateOperator
@@ -241,30 +213,22 @@ Comment "comment"
 
 MultiLineComment
   = "/*" comment:$(!"*/" SourceCharacter)* "*/" {
-
-        return addComment( comment, true );
-
+      return addComment(comment, true);
   }
 
 MultiLineCommentNoLineTerminator
   = "/*" comment:$(!("*/" / LineTerminator) SourceCharacter)* "*/" {
-
-        return addComment( comment, true );
-
+      return addComment(comment, true);
   }
 
 SingleLineComment
   = "//" comment:$(!LineTerminator SourceCharacter)* {
-
-        return addComment(comment, false);
-
+      return addComment(comment, false);
   }
 
 Identifier "identifier"
   = head:IdentifierStart tail:IdentifierPart* {
-      
-        return head + tail.join("");
-
+      return head + tail.join("");
     }
 
 IdentifierStart
@@ -301,12 +265,10 @@ UnicodeConnectorPunctuation
 
 LiteralMatcher "literal"
   = value:StringLiteral ignoreCase:"i"? {
-
-        return createNode( "literal", {
-            value,
-            ignoreCase: ignoreCase !== null,
-        } );
-
+      return createNode("literal", {
+        value,
+        ignoreCase: ignoreCase !== null,
+      });
     }
 
 StringLiteral "string"
@@ -325,13 +287,11 @@ SingleStringCharacter
 
 CharacterClassMatcher "character class"
   = "[" inverted:"^"? parts:CharacterPart* "]" ignoreCase:"i"? {
-
-        return createNode( "class", {
-            parts: parts.filter( part => part !== "" ),
-            inverted: inverted !== null,
-            ignoreCase: ignoreCase !== null,
-        } );
-
+      return createNode("class", {
+        parts: parts.filter(part => part !== ""),
+        inverted: inverted !== null,
+        ignoreCase: ignoreCase !== null,
+      });
     }
 
 CharacterPart
@@ -340,13 +300,10 @@ CharacterPart
 
 ClassCharacterRange
   = begin:ClassCharacter "-" end:ClassCharacter {
-
-        if ( begin.charCodeAt( 0 ) > end.charCodeAt( 0 ) )
-
-            error( "Invalid character range: " + text() + "." );
-
-        return [ begin, end ];
-
+      if (begin.charCodeAt(0) > end.charCodeAt(0) ) {
+        error("Invalid character range: " + text() + ".");
+      }
+      return [begin, end];
     }
 
 ClassCharacter
@@ -389,16 +346,12 @@ EscapeCharacter
 
 HexEscapeSequence
   = "x" digits:$(HexDigit HexDigit) {
-
-        return String.fromCharCode( parseInt( digits, 16 ) );
-
+        return String.fromCharCode(parseInt(digits, 16));
     }
 
 UnicodeEscapeSequence
   = "u" digits:$(HexDigit HexDigit HexDigit HexDigit) {
-
-        return String.fromCharCode( parseInt( digits, 16 ) );
-
+        return String.fromCharCode(parseInt(digits, 16));
     }
 
 DecimalDigit
@@ -409,9 +362,7 @@ HexDigit
 
 AnyMatcher
   = "." {
-
-        return createNode( "any" );
-
+        return createNode("any");
     }
 
 CodeBlock "code block"

@@ -5,7 +5,7 @@ import { GrammarError } from "../grammar-error"
 import { ICompilerPassOptions } from "./mod"
 import * as visitor from "../ast/visitor"
 import { opcodes } from "./opcodes"
-import parser from "../parser"
+import * as parser from "../parser"
 import * as vm from "../util/vm"
 
 function fatal(message: string, location?: SourceLocation) {

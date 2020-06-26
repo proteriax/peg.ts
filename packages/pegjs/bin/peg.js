@@ -1,7 +1,7 @@
 #!/usr/bin/env node -r esm
 
 import * as fs from "fs"
-import * as peg from "../lib/peg"
+import * as peg from "../dist/peg.cjs"
 import options from "./options"
 
 // Helpers

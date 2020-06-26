@@ -1,6 +1,6 @@
 import * as fs from "fs"
 import * as path from "path"
-import * as peg from "../lib/peg"
+import * as peg from "../dist/peg.cjs"
 
 // Options
 
@@ -20,8 +20,7 @@ let options = {
 }
 
 const EXPORT_VAR_FORMATS = ["globals", "umd"]
-const DEPENDENCY_FORMATS = ["amd", "commonjs", "es", "umd"]
-const MODULE_FORMATS = ["amd", "bare", "commonjs", "es", "globals", "umd"]
+const MODULE_FORMATS = ["commonjs", "es"]
 const OPTIMIZATION_GOALS = ["size", "speed"]
 
 // Helpers
@@ -69,7 +68,7 @@ function addExtraOptions(config) {
     }
   }
 
-  options = { ...config, ...options }
+  options = { ...options, ...config }
 }
 
 function formatChoicesList(list) {
@@ -165,6 +164,9 @@ while (args.length > 0) {
           abort(`Can't read from file "${argument}".`)
         }
       }
+      if ("default" in config) {
+        config = config.default
+      }
       addExtraOptions(config)
       break
 
@@ -239,14 +241,6 @@ while (args.length > 0) {
 }
 
 // Validation and defaults
-
-if (Object.keys(options.dependencies).length > 0) {
-  if (!DEPENDENCY_FORMATS.includes(options.format)) {
-    abort(
-      `Can't use the -d/--dependency option with the "${options.format}" module format.`
-    )
-  }
-}
 
 if (options.exportVar !== null) {
   if (!EXPORT_VAR_FORMATS.includes(options.format)) {
