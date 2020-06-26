@@ -1,4 +1,4 @@
-export default class peg$DefaultTracer implements Tracer {
+export class peg$DefaultTracer implements Tracer {
   #indentLevel = 0
 
   trace(event: TraceEvent) {

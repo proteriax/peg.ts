@@ -4,6 +4,7 @@ export default {
 
   header: "/* eslint-disable */",
   format: "es",
+  prettier: true,
 
   dependencies: {
     ast: "./ast/mod",

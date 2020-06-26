@@ -7,8 +7,17 @@ export function evalModule(source: string, context: { [key: string]: any }) {
   const argumentKeys = Object.keys(context)
   const argumentValues = Object.values(context)
 
+  const wrapped = `
+    try {
+      ${source}
+    } catch (e) {
+      console.trace();
+      console.error(e);
+      throw e;
+    }`
+
   const module = { exports: {} }
-  argumentKeys.push("module", "exports", "require", source)
+  argumentKeys.push("module", "exports", "require", wrapped)
   argumentValues.push(module, module.exports, require)
 
   Function(...argumentKeys)(...argumentValues)

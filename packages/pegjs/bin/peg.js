@@ -78,6 +78,7 @@ readStream(inputStream, input => {
       fs.writeFileSync(outputFile, originalContent, "utf8")
     }
 
+    console.error(e)
     return abort(e.message)
   }
 

@@ -87,20 +87,20 @@ export function generateJS(
 
     if (options.optimize === "size") {
       return [
-        "var peg$literals = [",
+        "let peg$literals = [",
         indent2(ast.literals.map(buildLiteral).join(",\n")),
         "];",
-        "var peg$regexps = [",
+        "let peg$regexps = [",
         indent2(ast.classes.map(buildRegexp).join(",\n")),
         "];",
-        "var peg$expectations = [",
+        "let peg$expectations = [",
         indent2(ast.expectations.map(buildExpectation).join(",\n")),
         "];",
-        "var peg$functions = [",
+        "let peg$functions = [",
         indent2(ast.functions.map(buildFunc).join(",\n")),
         "];",
         "",
-        "var peg$bytecode = [",
+        "let peg$bytecode = [",
         indent2(
           ast.rules
             .map(
@@ -116,18 +116,18 @@ export function generateJS(
     }
 
     return ast.literals
-      .map((c, i) => `var ${l(i)} = ${buildLiteral(c)};`)
+      .map((c, i) => `let ${l(i)} = ${buildLiteral(c)};`)
       .concat(
         "",
-        ast.classes.map((c, i) => `var ${r(i)} = ${buildRegexp(c)};`)
+        ast.classes.map((c, i) => `let ${r(i)} = ${buildRegexp(c)};`)
       )
       .concat(
         "",
-        ast.expectations.map((c, i) => `var ${e(i)} = ${buildExpectation(c)};`)
+        ast.expectations.map((c, i) => `let ${e(i)} = ${buildExpectation(c)};`)
       )
       .concat(
         "",
-        ast.functions.map((c, i) => `var ${f(i)} = ${buildFunc(c)};`)
+        ast.functions.map((c, i) => `let ${f(i)} = ${buildFunc(c)};`)
       )
       .join("\n")
   }
@@ -138,7 +138,7 @@ export function generateJS(
     parts.push(
       [
         "",
-        "var rule$expects = function (expected) {",
+        "let rule$expects = function (expected) {",
         "  if (peg$silentFails === 0) peg$expect(expected);",
         "}",
         "",
@@ -161,9 +161,9 @@ export function generateJS(
     if (options.cache) {
       parts.push(
         [
-          `var key = peg$currPos * ${ast.rules.length} + ${ruleIndexCode};`,
-          "var cached = peg$resultsCache[key];",
-          "var rule$expectations = [];",
+          `let key = peg$currPos * ${ast.rules.length} + ${ruleIndexCode};`,
+          "let cached = peg$resultsCache[key];",
+          "let rule$expectations = [];",
           "",
           "rule$expects = function (expected) {",
           "  if (peg$silentFails === 0) peg$expect(expected);",
@@ -301,7 +301,7 @@ export function generateJS(
 
       return [
         `params = bc.slice(ip + ${baseLength}, ip + ${baseLength} + ${paramsLengthCode})`,
-        "  .map(function(p) { return stack[stack.length - 1 - p]; });",
+        "  .map(p => stack[stack.length - 1 - p]);",
         "",
         "stack.splice(",
         "  stack.length - bc[ip + 2],",
@@ -317,7 +317,7 @@ export function generateJS(
     parts.push(
       [
         "function peg$decode(s) {",
-        '  return s.split("").map(function(ch) { return ch.charCodeAt(0) - 32; });',
+        '  return s.split("").map(ch => ch.charCodeAt(0) - 32);',
         "}",
         "",
         "function peg$parseRule(index) {",
@@ -327,26 +327,26 @@ export function generateJS(
     if (options.trace) {
       parts.push(
         [
-          "  var bc = peg$bytecode[index];",
-          "  var ip = 0;",
-          "  var ips = [];",
-          "  var end = bc.length;",
-          "  var ends = [];",
-          "  var stack = [];",
-          "  var startPos = peg$currPos;",
-          "  var params, paramsLength, paramsN;",
+          "  let bc = peg$bytecode[index];",
+          "  let ip = 0;",
+          "  let ips = [];",
+          "  let end = bc.length;",
+          "  let ends = [];",
+          "  let stack = [];",
+          "  let startPos = peg$currPos;",
+          "  let params, paramsLength, paramsN;",
         ].join("\n")
       )
     } else {
       parts.push(
         [
-          "  var bc = peg$bytecode[index];",
-          "  var ip = 0;",
-          "  var ips = [];",
-          "  var end = bc.length;",
-          "  var ends = [];",
-          "  var stack = [];",
-          "  var params, paramsLength, paramsN;",
+          "  let bc = peg$bytecode[index];",
+          "  let ip = 0;",
+          "  let ips = [];",
+          "  let end = bc.length;",
+          "  let ends = [];",
+          "  let stack = [];",
+          "  let params, paramsLength, paramsN;",
         ].join("\n")
       )
     }
@@ -965,8 +965,8 @@ export function generateJS(
 
       parts.push(
         [
-          `  var peg$startRuleIndices = ${startRuleIndices};`,
-          `  var peg$startRuleIndex = ${startRuleIndex};`,
+          `  let peg$startRuleIndices = ${startRuleIndices};`,
+          `  let peg$startRuleIndex = ${startRuleIndex};`,
         ].join("\n")
       )
     } else {
@@ -977,8 +977,8 @@ export function generateJS(
 
       parts.push(
         [
-          `  var peg$startRuleFunctions = ${startRuleFunctions};`,
-          `  var peg$startRuleFunction = ${startRuleFunction};`,
+          `  let peg$startRuleFunctions = ${startRuleFunctions};`,
+          `  let peg$startRuleFunction = ${startRuleFunction};`,
         ].join("\n")
       )
     }
@@ -990,17 +990,17 @@ export function generateJS(
     parts.push(
       [
         "",
-        "  var peg$currPos = 0;",
-        "  var peg$savedPos = 0;",
-        "  var peg$posDetailsCache = [{ line: 1, column: 1 }];",
-        "  var peg$expected = [];",
-        "  var peg$silentFails = 0;", // 0 = report failures, > 0 = silence failures
+        "  let peg$currPos = 0;",
+        "  let peg$savedPos = 0;",
+        "  let peg$posDetailsCache = [{ line: 1, column: 1 }];",
+        "  let peg$expected = [];",
+        "  let peg$silentFails = 0;", // 0 = report failures, > 0 = silence failures
         "",
       ].join("\n")
     )
 
     if (options.cache) {
-      parts.push(["  var peg$resultsCache = {};", ""].join("\n"))
+      parts.push(["  let peg$resultsCache = {};", ""].join("\n"))
     }
 
     if (options.trace) {
@@ -1009,20 +1009,20 @@ export function generateJS(
           .map(r => `"${util.stringEscape(r.name)}"`)
           .join(", ")}]`
 
-        parts.push([`  var peg$ruleNames = ${ruleNames};`, ""].join("\n"))
+        parts.push([`  let peg$ruleNames = ${ruleNames};`, ""].join("\n"))
       }
 
       if (use("DefaultTracer"))
         parts.push(
           [
-            '  var peg$tracer = "tracer" in options ? options.tracer : new peg$DefaultTracer();',
+            '  let peg$tracer = "tracer" in options ? options.tracer : new peg$DefaultTracer();',
             "",
           ].join("\n")
         )
       else
         parts.push(
           [
-            '  var peg$tracer = "tracer" in options ? options.tracer : peg$FauxTracer;',
+            '  let peg$tracer = "tracer" in options ? options.tracer : peg$FauxTracer;',
             "",
           ].join("\n")
         )
@@ -1191,20 +1191,20 @@ export function generateJS(
           ? '  var peg$VALIDFILENAME = typeof options.filename === "string" && options.filename.length > 0;'
           : "",
         "  function peg$computeLocation(startPos, endPos) {",
-        "    var loc = {};",
+        "    const loc = {};",
         "",
         use("filename")
-          ? "    if ( peg$VALIDFILENAME ) loc.filename = options.filename;"
+          ? "    if (peg$VALIDFILENAME) loc.filename = options.filename;"
           : "",
         "",
-        "    var startPosDetails = peg$computePosDetails(startPos);",
+        "    const startPosDetails = peg$computePosDetails(startPos);",
         "    loc.start = {",
         "      offset: startPos,",
         "      line: startPosDetails.line,",
         "      column: startPosDetails.column",
         "    };",
         "",
-        "    var endPosDetails = peg$computePosDetails(endPos);",
+        "    const endPosDetails = peg$computePosDetails(endPos);",
         "    loc.end = {",
         "      offset: endPos,",
         "      line: endPosDetails.line,",
@@ -1219,7 +1219,7 @@ export function generateJS(
         "  }",
         "",
         "  function peg$expect(expected) {",
-        "    var top = peg$expected[peg$expected.length - 1];",
+        "    const top = peg$expected[peg$expected.length - 1];",
         "",
         "    if (peg$currPos < top.pos) { return; }",
         "",
@@ -1232,9 +1232,9 @@ export function generateJS(
         "  }",
         "",
         "  function peg$end(invert) {",
-        "    var expected = peg$expected.pop();",
-        "    var top = peg$expected[peg$expected.length - 1];",
-        "    var variants = expected.variants;",
+        "    const expected = peg$expected.pop();",
+        "    const top = peg$expected[peg$expected.length - 1];",
+        "    let variants = expected.variants;",
         "",
         "    if (top.pos !== expected.pos) { return; }",
         "",
@@ -1261,8 +1261,8 @@ export function generateJS(
         "  }",
         "",
         "  function peg$buildError() {",
-        "    var expected = peg$expected[0];",
-        "    var failPos = expected.pos;",
+        "    const expected = peg$expected[0];",
+        "    const failPos = expected.pos;",
         "",
         "    return peg$buildStructuredError(",
         "      expected.variants,",
@@ -1364,8 +1364,8 @@ export function generateJS(
     const generators = {
       commonjs() {
         const parts: string[] = [
-          `var peg$SyntaxError = require("@pegjs/runtime/SyntaxError").default;`,
-          `var peg$DefaultTracer = require("@pegjs/runtime/DefaultTracer").default;`,
+          `const { peg$SyntaxError } = require("@pegjs/runtime/SyntaxError");`,
+          `const { peg$DefaultTracer } = require("@pegjs/runtime/DefaultTracer");`,
         ]
         const dependencyVars = Object.keys(options.dependencies)
 
@@ -1374,7 +1374,7 @@ export function generateJS(
         if (dependencyVars.length > 0) {
           dependencyVars.forEach(variable => {
             parts.push(
-              `var ${variable} = require("${util.stringEscape(
+              `const ${variable} = require("${util.stringEscape(
                 options.dependencies[variable]
               )}");`
             )
@@ -1391,8 +1391,8 @@ export function generateJS(
 
       es() {
         const parts: string[] = [
-          `import peg$SyntaxError from "@pegjs/runtime/SyntaxError";`,
-          `import peg$DefaultTracer from "@pegjs/runtime/DefaultTracer";`,
+          `import { peg$SyntaxError } from "@pegjs/runtime/SyntaxError";`,
+          `import { peg$DefaultTracer } from "@pegjs/runtime/DefaultTracer";`,
         ]
         const dependencyVars = Object.keys(options.dependencies)
 

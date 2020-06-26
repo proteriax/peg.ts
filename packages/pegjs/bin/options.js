@@ -17,6 +17,7 @@ let options = {
   parser: {},
   plugins: [],
   trace: false,
+  prettier: false,
 }
 
 const EXPORT_VAR_FORMATS = ["globals", "umd"]

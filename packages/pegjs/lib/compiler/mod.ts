@@ -34,6 +34,7 @@ export interface ICompilerOptions<T = OutputOptions> {
   format?: FormatOptions
   header?: string | string[]
   optimize?: OptimizeOptions
+  prettier?: boolean
   output?: T
   trace?: boolean
 }
@@ -109,6 +110,7 @@ export function compile(ast: Grammar, session: Session, options: ICompilerOption
     optimize: "speed",
     output: "parser",
     trace: false,
+    prettier: false,
     ...options,
   }
 
@@ -123,13 +125,20 @@ export function compile(ast: Grammar, session: Session, options: ICompilerOption
     })
   })
 
+  let code = ast.code!
+
   switch (options.output) {
     case "parser": {
-      const js = ast.code! // transpile(ast.code!)
+      const js = code // transpile(ast.code!)
       return session.vm.evalModule(js, options.context)
     }
-    case "source":
-      return ast.code
+    case "source": {
+      if (options.prettier) {
+        const prettier = require("prettier")
+        code = prettier.format(code, { parser: "babel" })
+      }
+      return code
+    }
     default:
       session.error(`Invalid output format: ${options.output}.`)
   }

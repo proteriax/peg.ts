@@ -23,7 +23,7 @@
 
 {
     // Used as a shorthand property name for `LabeledExpression`
-    const pick = true;
+    let pick = true;
 
     // Used by `LabelIdentifier` to disallow the use of certain words as labels
     const RESERVED_WORDS = new Set();

@@ -8,7 +8,8 @@
   "rules": {
     "no-duplicate-imports": ["error", { "includeExports": false }],
     "no-eval": 0,
-    "no-unused-vars": ["error", { "varsIgnorePattern": "^_", "args": "none" }]
+    "no-unused-vars": ["error", { "varsIgnorePattern": "^_", "args": "none" }],
+    "no-const-assign": "error"
   },
   "overrides": [
     {

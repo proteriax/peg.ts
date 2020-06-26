@@ -1,4 +1,4 @@
-export default class peg$SyntaxError extends Error {
+export class peg$SyntaxError extends Error {
   constructor(
     message: string,
     readonly expected: null | Expectation[],
