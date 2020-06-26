@@ -1,43 +1,25 @@
-"use strict";
+"use strict"
 
-import {Bundler, expand} from "../../export.utils";
-import template from "../../templates/article";
+import { Bundler, expand } from "../../export.utils"
+import template from "../../templates/article"
 
-export default Bundler.create( {
+export default Bundler.create({
+  script: __filename,
+  check: expand("test"),
+  config: {
+    entry: expand("test/browser.stub.js"),
+    library: ["peg", "test"],
+    output: expand("public/js/test-bundle.min.js"),
+  },
 
-    script: __filename,
-    check: expand( "test" ),
-    config: {
-
-        entry: expand( "test/browser.stub.js" ),
-        library: [ "peg", "test" ],
-        output: expand( "public/js/test-bundle.min.js" ),
-
-    },
-
-    next() {
-
-        return template( {
-            title: "Test",
-            content: `
-
-                <div id="mocha"></div>
-
-                <link href="/css/test.css" rel="stylesheet" />
-
-                <script>
-                    if ( window.MSInputMethodContext && document.documentMode )
-
-                        document.getElementById( "mocha" ).innerHTML = "Sorry, IE11 is not supported by the Spec Runner's dependencies.";
-
-                    else
-
-                        document.write( "<script src='/js/test-bundle.min.js'><\\/script>" );
-                </script>
-
-            `,
-        } );
-
-    },
-
-} );
+  next() {
+    return template({
+      title: "Test",
+      template: `
+        <div id="mocha"></div>
+        <link href="/css/test.css" rel="stylesheet" />
+        <script src='/js/test-bundle.min.js'></script>
+    `,
+    })
+  },
+})

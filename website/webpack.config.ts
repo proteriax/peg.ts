@@ -1,1 +1,3 @@
-export default require("./export.utils").Bundler.load()
+import { Bundler } from "./export.utils"
+
+export default Bundler.load()

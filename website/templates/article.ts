@@ -1,15 +1,14 @@
-import template from "./html"
+import template, { HTMLOptions } from "./html"
 
-export default ({ content, ga, layout, title } = {}) => {
-  content = `
-
-        <div id="content">
-
-            ${content}
-
-        </div>
-
-    `
-
-  return template({ content, ga, layout, title })
+export default ({ template: content, ga, layout, title }: HTMLOptions = {}) => {
+  return template({
+    ga,
+    layout,
+    title,
+    template: `
+      <div id="content">
+        ${content}
+      </div>
+    `,
+  })
 }

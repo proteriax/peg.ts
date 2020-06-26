@@ -24,7 +24,7 @@ const FRESH_BUILD = process.argv.includes("--fresh")
  * @type {path & fse}
  */
 
-const fs = Object.assign({}, path, fse, {
+export const fs = Object.assign({}, path, fse, {
   copy(source, target, opts) {
     return refresh(source, target, async () => {
       if (FRESH_BUILD) await fse.remove(target)
@@ -35,10 +35,9 @@ const fs = Object.assign({}, path, fse, {
 })
 
 /**
- * A bundler wrapper that simplfies bundler interaction across child process's via async functions.
+ * A bundler wrapper that simplifies bundler interaction across child process's via async functions.
  */
-
-const Bundler = {
+export const Bundler = {
   /**
    * The CLI argument used to get/set a script that actually contains the bundles config.
    */
@@ -73,8 +72,21 @@ const Bundler = {
    * @template T
    * @param {{check?: string, config: {}, cwd?: string, next: () => T, script: string, targets?: {}[]}} param0
    */
-
-  create({ check, config, cwd = __dirname, next, script, targets }) {
+  create<T>({
+    check,
+    config,
+    cwd = __dirname,
+    next,
+    script,
+    targets,
+  }: {
+    check?: string
+    config: {}
+    cwd?: string
+    next: () => T
+    script: string
+    targets?: {}[]
+  }) {
     if (targets && !config) config = targets[0]
 
     /** @returns {Promise<T>} */
@@ -107,8 +119,7 @@ const Bundler = {
  * @param {string} p The path to expand
  * @param {string|string[]} cwd The current working directory (prepended to `p`)
  */
-
-function expand(p = ".", cwd = [__dirname, ".."]) {
+export function expand(p = ".", cwd: string | string[] = [__dirname, ".."]) {
   let resolved = expand.cache[p]
 
   if (!resolved) {
@@ -147,16 +158,4 @@ async function refresh(source, target, cb) {
   const paths = { source, target }
 
   return FRESH_BUILD || (await isSourceNewer(paths)) ? cb(paths) : Promise.resolve()
-}
-
-export default {
-  FRESH_BUILD,
-
-  bluebird,
-  cp,
-  fs,
-
-  Bundler,
-  expand,
-  refresh,
 }
