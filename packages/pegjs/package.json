@@ -30,7 +30,7 @@
     "Futago-za Ryuu <futagoza.ryuu@gmail.com>"
   ],
   "main": "lib/mod.ts",
-  "bin": "bin/peg.js",
+  "bin": "bin/peg.ts",
   "engines": {
     "node": ">= 8"
   }

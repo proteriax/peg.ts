@@ -2,7 +2,7 @@
  * Provides information pointing to a location within a source.
  */
 export interface SourcePosition {
-  offset: number
+  offset?: number
   line: number
   column: number
 }

@@ -1,5 +1,5 @@
 /* eslint no-mixed-operators: 0, prefer-const: 0 */
-
+import { forEach } from "lodash"
 import type { Grammar } from "../../ast/Grammar"
 import type { Session } from "../session"
 import type { ICompilerPassOptions } from "../mod"
@@ -1372,12 +1372,8 @@ export function generateJS(
         parts.push([generateHeaderComment(), "", '"use strict";', ""].join("\n"))
 
         if (dependencyVars.length > 0) {
-          dependencyVars.forEach(variable => {
-            parts.push(
-              `const ${variable} = require("${util.stringEscape(
-                options.dependencies[variable]
-              )}");`
-            )
+          forEach(options.dependencies, (value, variable) => {
+            parts.push(`const ${variable} = require(${JSON.stringify(value)});`)
           })
           parts.push("")
         }
@@ -1394,17 +1390,13 @@ export function generateJS(
           `import { peg$SyntaxError } from "@pegjs/runtime/SyntaxError";`,
           `import { peg$DefaultTracer } from "@pegjs/runtime/DefaultTracer";`,
         ]
-        const dependencyVars = Object.keys(options.dependencies)
+        const dependencyKeys = Object.keys(options.dependencies)
 
         parts.push(generateHeaderComment(), "")
 
-        if (dependencyVars.length > 0) {
-          dependencyVars.forEach(variable => {
-            parts.push(
-              `import * as ${variable} from "${util.stringEscape(
-                options.dependencies[variable]
-              )}";`
-            )
+        if (dependencyKeys.length > 0) {
+          forEach(options.dependencies, (value, variable) => {
+            parts.push(`import * as ${variable} from ${JSON.stringify(value)};`)
           })
           parts.push("")
         }

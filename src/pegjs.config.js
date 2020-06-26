@@ -1,6 +1,6 @@
 export default {
   input: "src/parser.pegjs",
-  output: "packages/pegjs/lib/parser.ts",
+  output: "packages/pegjs/lib/parser.js",
 
   header: "/* eslint-disable */",
   format: "es",

@@ -14,13 +14,12 @@ import { reportIncorrectPlucking } from "./passes/report-incorrect-plucking"
 import { Grammar } from "../ast/Grammar"
 import type { Session } from "./session"
 import { IStageMap } from "../util/mod"
-import { transpile } from "../typescript"
 export { opcodes } from "./opcodes"
 
 export { Session } from "./session"
 
-type FormatOptions = "commonjs" | "es"
-type OptimizeOptions = "size" | "speed"
+export type FormatOptions = "commonjs" | "es"
+export type OptimizeOptions = "size" | "speed"
 export type OutputOptions = "parser" | "source"
 
 export interface ICompilerOptions<T = OutputOptions> {
@@ -34,8 +33,8 @@ export interface ICompilerOptions<T = OutputOptions> {
   format?: FormatOptions
   header?: string | string[]
   optimize?: OptimizeOptions
-  prettier?: boolean
   output?: T
+  prettier?: boolean
   trace?: boolean
 }
 

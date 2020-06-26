@@ -1,16 +1,18 @@
 import * as fs from "fs"
 import * as path from "path"
 import * as peg from "../dist/peg.cjs"
+import { isString, isObject } from "lodash"
+import { IBuildOptions } from "../lib/mod"
+import { FormatOptions, OptimizeOptions } from "../lib/compiler/mod"
 
 // Options
 
-let inputFile = null
-let outputFile = null
+let inputFile: string | null = null
+let outputFile: string | null = null
 let options = {
   "--": [],
   cache: false,
   dependencies: {},
-  exportVar: null,
   format: "commonjs",
   optimize: "speed",
   output: "source",
@@ -18,7 +20,7 @@ let options = {
   plugins: [],
   trace: false,
   prettier: false,
-}
+} as IBuildOptions
 
 const EXPORT_VAR_FORMATS = ["globals", "umd"]
 const MODULE_FORMATS = ["commonjs", "es"]
@@ -26,43 +28,50 @@ const OPTIMIZATION_GOALS = ["size", "speed"]
 
 // Helpers
 
-function abort(message) {
+function abort(message: string): never {
+  console.trace()
   console.error(message)
   process.exit(1)
 }
 
-function addExtraOptions(config) {
-  if (typeof config === "string") {
+function addExtraOptions(config: string | IBuildOptions) {
+  if (isString(config)) {
     try {
-      config = JSON.parse(config)
+      config = JSON.parse(config) as IBuildOptions
     } catch (e) {
       if (!(e instanceof SyntaxError)) throw e
       abort(`Error parsing JSON: ${e.message}`)
     }
   }
-  if (typeof config !== "object") {
+
+  if (!isObject(config)) {
     abort("The JSON with extra options has to represent an object.")
   }
 
   if (config.input !== null || config.output !== null) {
-    // We don't want to touch the orignal config, just in case it comes from
+    // We don't want to touch the original config, just in case it comes from
     // a javascript file, in which case its possible the same object is used
     // for something else, somewhere else.
     config = { ...config }
     const { input, output } = config
 
     if (input !== null) {
-      if (typeof input !== "string") abort("The option `input` must be a string.")
+      if (!isString(input)) {
+        abort("The option `input` must be a string.")
+      }
 
-      if (inputFile !== null)
+      if (inputFile !== null) {
         abort(`The input file is already set, cannot use: "${input}".`)
+      }
 
       inputFile = input
       delete config.input
     }
 
     if (output !== null) {
-      if (typeof output !== "string") abort("The option `output` must be a string.")
+      if (!isString(output)) {
+        abort("The option `output` must be a string.")
+      }
 
       outputFile = output
       delete config.output
@@ -72,14 +81,14 @@ function addExtraOptions(config) {
   options = { ...options, ...config }
 }
 
-function formatChoicesList(list) {
+function formatChoicesList(list: string[]) {
   list = list.map(entry => `"${entry}"`)
   const lastOption = list.pop()
 
   return list.length === 0 ? lastOption : `${list.join(", ")} or ${lastOption}`
 }
 
-function updateList(list, string) {
+function updateList(list: string[], string: string) {
   string.split(",").forEach(entry => {
     entry = entry.trim()
     if (!list.includes(entry)) {
@@ -90,26 +99,26 @@ function updateList(list, string) {
 
 // Arguments
 
-let args = process.argv.slice(2)
+let args: (string | string[])[] = process.argv.slice(2)
 
-function nextArg(option) {
+function nextArg(option: string) {
   if (args.length === 0) {
     abort(`Missing parameter of the ${option} option.`)
   }
-  return args.shift()
+  console.assert(typeof args[0] === "string")
+  return args.shift()! as string
 }
 
 // Parse Arguments
 
 while (args.length > 0) {
   let config
-  let mod
-  let argument = args.shift()
+  let argument = args.shift()! as string
 
-  if (argument.indexOf("-") === 0 && argument.indexOf("=") > 1) {
-    argument = argument.split("=")
-    args.unshift(argument.length > 2 ? argument.slice(1) : argument[1])
-    argument = argument[0]
+  if (argument.startsWith("-") && argument.indexOf("=") > 1) {
+    const list = argument.split("=")
+    args.unshift(list.length > 2 ? list.slice(1) : list[1])
+    argument = list[0]
   }
 
   switch (argument) {
@@ -120,7 +129,9 @@ while (args.length > 0) {
 
     case "-a":
     case "--allowed-start-rules":
-      if (!options.allowedStartRules) options.allowedStartRules = []
+      if (!options.allowedStartRules) {
+        options.allowedStartRules = []
+      }
       updateList(options.allowedStartRules, nextArg("--allowed-start-rules"))
       break
 
@@ -133,16 +144,12 @@ while (args.length > 0) {
       break
 
     case "-d":
-    case "--dependency":
+    case "--dependency": {
       argument = nextArg("-d/--dependency")
-      mod = argument.split(":")
-
-      if (mod.length === 1) mod = [argument, argument]
-      else if (mod.length > 2) mod[1] = mod.slice(1)
-
-      options.dependencies[mod[0]] = mod[1]
+      const mod = argument.split(":")
+      options.dependencies![mod[0]] = mod[1] ?? mod[0]
       break
-
+    }
     case "-e":
     case "--export-var":
       options.exportVar = nextArg("-e/--export-var")
@@ -156,7 +163,7 @@ while (args.length > 0) {
     case "--config":
     case "--extra-options-file":
       argument = nextArg("-c/--config/--extra-options-file")
-      if (path.extname(argument) === ".js") {
+      if ([".js", ".ts"].includes(path.extname(argument))) {
         config = require(path.resolve(argument))
       } else {
         try {
@@ -177,12 +184,12 @@ while (args.length > 0) {
       if (!MODULE_FORMATS.includes(argument)) {
         abort(`Module format must be either ${formatChoicesList(MODULE_FORMATS)}.`)
       }
-      options.format = argument
+      options.format = argument as FormatOptions
       break
 
     case "-h":
     case "--help":
-      console.log(require("./usage"))
+      console.log(fs.readFileSync("./usage.txt", "utf8"))
       process.exit()
       break
 
@@ -194,7 +201,7 @@ while (args.length > 0) {
           `Optimization goal must be either ${formatChoicesList(OPTIMIZATION_GOALS)}.`
         )
       }
-      options.optimize = argument
+      options.optimize = argument as OptimizeOptions
       break
 
     case "-o":
@@ -203,21 +210,27 @@ while (args.length > 0) {
       break
 
     case "-p":
-    case "--plugin":
+    case "--plugin": {
       argument = nextArg("-p/--plugin")
+      let mod: any
       try {
         mod = require(argument)
       } catch (ex1) {
-        if (ex1.code !== "MODULE_NOT_FOUND") throw ex1
+        if (ex1.code !== "MODULE_NOT_FOUND") {
+          throw ex1
+        }
         try {
           mod = require(path.resolve(argument))
         } catch (ex2) {
-          if (ex2.code !== "MODULE_NOT_FOUND") throw ex2
+          if (ex2.code !== "MODULE_NOT_FOUND") {
+            throw ex2
+          }
           abort(`Can't load module "${argument}".`)
         }
       }
-      options.plugins.push(mod)
+      options.plugins!.push(mod)
       break
+    }
 
     case "--trace":
       options.trace = true
@@ -231,7 +244,6 @@ while (args.length > 0) {
     case "--version":
       console.log(`PEG.js v${peg.VERSION}`)
       process.exit()
-      break
 
     default:
       if (inputFile !== null) {
@@ -243,19 +255,22 @@ while (args.length > 0) {
 
 // Validation and defaults
 
-if (options.exportVar !== null) {
-  if (!EXPORT_VAR_FORMATS.includes(options.format)) {
+if (options.exportVar) {
+  if (!EXPORT_VAR_FORMATS.includes(options.format!)) {
     abort(
       `Can't use the -e/--export-var option with the "${options.format}" module format.`
     )
   }
 }
 
-if (inputFile === null) inputFile = "-"
+if (inputFile === null) {
+  inputFile = "-"
+}
 
 if (outputFile === null) {
-  if (inputFile === "-") outputFile = "-"
-  else if (inputFile) {
+  if (inputFile === "-") {
+    outputFile = "-"
+  } else if (inputFile) {
     outputFile = `${inputFile.substr(
       0,
       inputFile.length - path.extname(inputFile).length

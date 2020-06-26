@@ -10,4 +10,3 @@ node_modules
 /sh.exe.stackdump
 /test/junit-results.xml
 mochawesome-report
-packages/pegjs/lib/parser.js
