@@ -7,7 +7,7 @@ export class peg$SyntaxError extends Error {
   ) {
     super(message)
     this.expected = expected
-    this.name = "SyntaxError"
+    this.name = "PEG.SyntaxError"
     Error.captureStackTrace?.(this, peg$SyntaxError)
   }
 

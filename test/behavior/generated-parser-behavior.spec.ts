@@ -43,7 +43,12 @@ describe("generated parser behavior", () => {
   }
 
   function helpers() {
-    Assertion.addMethod("parse", function (input, expected, options = {}) {
+    Assertion.addMethod("parse", function (
+      this: Chai.AssertionStatic,
+      input,
+      expected,
+      options = {}
+    ) {
       const result = withConsoleStub(() =>
         util.flag(this, "object").parse(input, options)
       )
@@ -60,7 +65,12 @@ describe("generated parser behavior", () => {
       }
     } as Chai.Assertion["parse"])
 
-    Assertion.addMethod("failToParse", function (input, props, options = {}) {
+    Assertion.addMethod("failToParse", function (
+      this: Chai.AssertionStatic,
+      input,
+      props,
+      options = {}
+    ) {
       let passed: boolean
       let result: API
 
@@ -1487,7 +1497,12 @@ describe("generated parser behavior", () => {
 
           expect(parser).to.failToParse("a", {
             expected: [
-              { type: "class", parts: [["a", "z"]], inverted: false, ignoreCase: false },
+              {
+                type: "class",
+                parts: [["a", "z"]],
+                inverted: false,
+                ignoreCase: false,
+              },
               { type: "literal", text: "e", ignoreCase: false },
             ],
           })

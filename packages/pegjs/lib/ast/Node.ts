@@ -12,7 +12,7 @@ export class Node {
 
 export interface INode extends Node {
   // Added by inference-match-result pass
-  match?: number
+  match: number
 }
 
 export interface Rule<Exp extends INode = Named | Expression> extends INode {

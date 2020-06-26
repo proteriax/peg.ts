@@ -10,7 +10,7 @@ import { version } from "pegjs/package.json"
 
 const extensions = [".js", ".ts"]
 
-const createConfig = ({ plugins = [], ...config }) =>
+const createConfig = ({ plugins = [], external, ...config }) =>
   merge(
     {
       input: require.resolve("pegjs"),
@@ -29,6 +29,7 @@ const createConfig = ({ plugins = [], ...config }) =>
           /* eslint-disable */
         `,
       },
+      external: x => x.startsWith("https:") || external.includes(x),
       plugins: [
         ...plugins,
         babel({ extensions, babelHelpers: "bundled", ...babelConfig }),
@@ -42,7 +43,7 @@ const createConfig = ({ plugins = [], ...config }) =>
 
 export default [
   createConfig({
-    external: x => x.startsWith("https:"),
+    external: ["jsesc"],
     output: {
       file: "packages/pegjs/dist/peg.js",
       format: "es",
@@ -56,7 +57,7 @@ export default [
     ],
   }),
   createConfig({
-    external: ["lodash"],
+    external: ["lodash", "jsesc"],
     output: {
       file: "packages/pegjs/dist/peg.cjs.js",
       format: "cjs",

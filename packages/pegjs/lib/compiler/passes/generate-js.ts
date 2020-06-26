@@ -1,11 +1,34 @@
 /* eslint no-mixed-operators: 0, prefer-const: 0 */
-import { forEach } from "lodash"
+import { map, isString } from "lodash"
 import type { Grammar } from "../../ast/Grammar"
 import type { Session } from "../session"
 import type { ICompilerPassOptions } from "../mod"
-import * as util from "../../util/mod"
+import { regexpEscape } from "../../util/mod"
 import { version as VERSION } from "../../../package.json"
+import jsesc from "jsesc"
 import { Rule } from "../../ast/Node"
+
+type StringGenerator = Generator<string | undefined, void, undefined>
+
+function assertString(value: any): string {
+  if (!isString(value)) {
+    throw TypeError(`Expected string, got ${typeof value}`)
+  }
+  return value
+}
+
+function join(generator: StringGenerator) {
+  return Array.from(generator, s => assertString(s || "")).join("\n")
+}
+
+const l = (i: number) => `peg$c${i}` // |literals[i]| of the abstract machine
+const r = (i: number) => `peg$r${i}` // |classes[i]| of the abstract machine
+const e = (i: number) => `peg$e${i}` // |expectations[i]| of the abstract machine
+const f = (i: number) => `peg$f${i}` // |actions[i]| of the abstract machine
+
+function buildLiteral(literal: string) {
+  return "'" + jsesc(literal) + "'"
+}
 
 // Generates parser JavaScript code.
 export function generateJS(
@@ -21,50 +44,36 @@ export function generateJS(
     return feature in features ? !!features[feature] : true
   }
 
-  /* These only indent non-empty lines to avoid trailing whitespace. */
-  const lineMatchRE = /^([^`\r\n]+?(?:`[^`]*?`[^\r\n]*?)?)$/gm
-  function indent2(code: string) {
-    return code.replace(lineMatchRE, "  $1")
-  }
-  function indent10(code: string) {
-    return code.replace(lineMatchRE, "          $1")
-  }
-
-  const l = (i: number) => `peg$c${i}` // |literals[i]| of the abstract machine
-  const r = (i: number) => `peg$r${i}` // |classes[i]| of the abstract machine
-  const e = (i: number) => `peg$e${i}` // |expectations[i]| of the abstract machine
-  const f = (i: number) => `peg$f${i}` // |actions[i]| of the abstract machine
-
-  function generateTables() {
-    function buildLiteral(literal: string) {
-      return `"${util.stringEscape(literal)}"`
-    }
-
+  function* generateTables() {
     function buildRegexp(cls) {
-      return `/^[${cls.inverted ? "^" : ""}${cls.value
-        .map(part =>
-          Array.isArray(part)
-            ? `${util.regexpEscape(part[0])}-${util.regexpEscape(part[1])}`
-            : util.regexpEscape(part)
-        )
-        .join("")}]/${cls.ignoreCase ? "i" : ""}`
+      return (
+        "/^[" +
+        (cls.inverted ? "^" : "") +
+        cls.value
+          .map(part =>
+            Array.isArray(part)
+              ? `${regexpEscape(part[0])}-${regexpEscape(part[1])}`
+              : regexpEscape(part)
+          )
+          .join("") +
+        "]/" +
+        (cls.ignoreCase ? "i" : "")
+      )
     }
 
     function buildExpectation(e) {
       switch (e.type) {
         case "rule":
-          return `peg$otherExpectation("${util.stringEscape(e.value)}")`
+          return `peg$otherExpectation(${buildLiteral(e.value)})`
 
         case "literal":
-          return `peg$literalExpectation("${util.stringEscape(e.value)}", ${
-            e.ignoreCase
-          })`
+          return `peg$literalExpectation(${buildLiteral(e.value)}, ${e.ignoreCase})`
 
         case "class": {
           const parts = e.value.map(part =>
             Array.isArray(part)
-              ? `["${util.stringEscape(part[0])}", "${util.stringEscape(part[1])}"]`
-              : `"${util.stringEscape(part)}"`
+              ? `[${buildLiteral(part[0])}, ${buildLiteral(part[1])}]`
+              : `${buildLiteral(part)}`
           )
 
           return `peg$classExpectation([${parts.join(", ")}], ${e.inverted}, ${
@@ -82,490 +91,464 @@ export function generateJS(
     }
 
     function buildFunc(f) {
+      if (/^\s+return /.test(f.body)) {
+        return (
+          "(" +
+          f.params.join(", ") +
+          ") => " +
+          f.body
+            .trim()
+            .replace(/^return /, "")
+            .replace(/;$/, "")
+        )
+      }
       return `function(${f.params.join(", ")}) {${f.body}}`
     }
 
     if (options.optimize === "size") {
-      return [
-        "let peg$literals = [",
-        indent2(ast.literals.map(buildLiteral).join(",\n")),
-        "];",
-        "let peg$regexps = [",
-        indent2(ast.classes.map(buildRegexp).join(",\n")),
-        "];",
-        "let peg$expectations = [",
-        indent2(ast.expectations.map(buildExpectation).join(",\n")),
-        "];",
-        "let peg$functions = [",
-        indent2(ast.functions.map(buildFunc).join(",\n")),
-        "];",
-        "",
-        "let peg$bytecode = [",
-        indent2(
-          ast.rules
-            .map(
-              rule =>
-                `peg$decode("${util.stringEscape(
-                  rule.bytecode!.map(b => String.fromCharCode(b + 32)).join("")
-                )}")`
-            )
-            .join(",\n")
-        ),
-        "];",
-      ].join("\n")
+      yield `
+        const peg$literals = [
+          ${ast.literals.map(buildLiteral).join(",")}
+        ]
+        const peg$regexps = [
+          ${ast.classes.map(buildRegexp).join(",")}
+        ]
+        const peg$expectations = [
+          ${ast.expectations.map(buildExpectation).join(",")}
+        ]
+        const peg$functions = [
+          ${ast.functions.map(buildFunc).join(",")}
+        ]
+        
+        const peg$bytecode = [
+          ${ast.rules
+            .map(rule => rule.bytecode!)
+            .map(bytecode => bytecode.map(b => String.fromCharCode(b + 32)).join(""))
+            .map(decode => `peg$decode(${JSON.stringify(decode)})`)
+            .join(",")}
+        ]
+      `
     }
 
-    return ast.literals
-      .map((c, i) => `let ${l(i)} = ${buildLiteral(c)};`)
-      .concat(
-        "",
-        ast.classes.map((c, i) => `let ${r(i)} = ${buildRegexp(c)};`)
-      )
-      .concat(
-        "",
-        ast.expectations.map((c, i) => `let ${e(i)} = ${buildExpectation(c)};`)
-      )
-      .concat(
-        "",
-        ast.functions.map((c, i) => `let ${f(i)} = ${buildFunc(c)};`)
-      )
-      .join("\n")
+    yield* ast.literals.map((c, i) => `const ${l(i)} = ${buildLiteral(c)}`)
+    yield
+    yield* ast.classes.map((c, i) => `const ${r(i)} = ${buildRegexp(c)}`)
+    yield
+    yield* ast.expectations.map((c, i) => `const ${e(i)} = ${buildExpectation(c)}`)
+    yield
+    yield* ast.functions.map((c, i) => `const ${f(i)} = ${buildFunc(c)}`)
+    yield
   }
 
-  function generateRuleHeader(ruleNameCode: string, ruleIndexCode: string | number) {
-    const parts: string[] = []
-
-    parts.push(
-      [
-        "",
-        "let rule$expects = function (expected) {",
-        "  if (peg$silentFails === 0) peg$expect(expected);",
-        "}",
-        "",
-      ].join("\n")
-    )
+  function* generateRuleHeader(
+    ruleNameCode: string,
+    ruleIndexCode: string | number
+  ): StringGenerator {
+    yield `
+      
+      let rule$expects = function (expected) {
+        if (peg$silentFails === 0) peg$expect(expected);
+      };
+      
+    `
 
     if (options.trace) {
-      parts.push(
-        [
-          "peg$tracer.trace({",
-          '  type: "rule.enter",',
-          `  rule: ${ruleNameCode},`,
-          "  location: peg$computeLocation(startPos, startPos)",
-          "});",
-          "",
-        ].join("\n")
-      )
+      yield `
+        peg$tracer.trace({
+          type: "rule.enter",
+          rule: ${ruleNameCode},
+          location: peg$computeLocation(startPos, startPos)
+        });
+
+      `
     }
 
     if (options.cache) {
-      parts.push(
-        [
-          `let key = peg$currPos * ${ast.rules.length} + ${ruleIndexCode};`,
-          "let cached = peg$resultsCache[key];",
-          "let rule$expectations = [];",
-          "",
-          "rule$expects = function (expected) {",
-          "  if (peg$silentFails === 0) peg$expect(expected);",
-          "  rule$expectations.push(expected);",
-          "}",
-          "",
-          "if (cached) {",
-          "  peg$currPos = cached.nextPos;",
-          "",
-          "  rule$expectations = cached.expectations;",
-          "  if (peg$silentFails === 0) {",
-          "    rule$expectations.forEach(peg$expect);",
-          "  }",
-          "",
-        ].join("\n")
-      )
+      yield `
+        let key = peg$currPos * ${ast.rules.length} + ${ruleIndexCode};
+        let cached = peg$resultsCache[key];
+        let rule$expectations = [];
+        
+        rule$expects = function (expected) {
+          if (peg$silentFails === 0) peg$expect(expected);
+          rule$expectations.push(expected);
+        }
+        
+        if (cached) {
+          peg$currPos = cached.nextPos;
+        
+          rule$expectations = cached.expectations;
+          if (peg$silentFails === 0) {
+            rule$expectations.forEach(peg$expect);
+          }
 
-      if (options.trace) {
-        parts.push(
-          [
-            "if (cached.result !== peg$FAILED) {",
-            "  peg$tracer.trace({",
-            '    type: "rule.match",',
-            `    rule: ${ruleNameCode},`,
-            "    result: cached.result,",
-            "    location: peg$computeLocation(startPos, peg$currPos)",
-            "  });",
-            "} else {",
-            "  peg$tracer.trace({",
-            '    type: "rule.fail",',
-            `    rule: ${ruleNameCode},`,
-            "    location: peg$computeLocation(startPos, startPos)",
-            "  });",
-            "}",
-            "",
+          return cached.result;
+        
+      `
+      /**
           ].join("\n")
         )
+      */
+
+      if (options.trace) {
+        yield `
+          if (cached.result !== peg$FAILED) {
+            peg$tracer.trace({
+              type: "rule.match",
+              rule: ${ruleNameCode},
+              result: cached.result,
+              location: peg$computeLocation(startPos, peg$currPos)
+            });
+          } else {
+            peg$tracer.trace({
+              type: "rule.fail",
+              rule: ${ruleNameCode},
+              location: peg$computeLocation(startPos, startPos)
+            });
+          }
+          
+          return cached.result;
+      `
       }
-
-      parts.push(["  return cached.result;", "}", ""].join("\n"))
+      yield "}"
     }
-
-    return parts.join("\n")
   }
 
-  function generateRuleFooter(ruleNameCode, resultCode) {
-    const parts: string[] = []
-
+  function* generateRuleFooter(ruleNameCode, resultCode): StringGenerator {
     if (options.cache) {
-      parts.push(
-        [
-          "",
-          "peg$resultsCache[key] = {",
-          "  nextPos: peg$currPos,",
-          `  result: ${resultCode},`,
-          "  expectations: rule$expectations",
-          "};",
-        ].join("\n")
-      )
+      yield `
+          
+          peg$resultsCache[key] = {
+            nextPos: peg$currPos,
+            result: ${resultCode},
+            expectations: rule$expectations
+          };
+        `
     }
 
     if (options.trace) {
-      parts.push(
-        [
-          "",
-          `if (${resultCode} !== peg$FAILED) {`,
-          "  peg$tracer.trace({",
-          '    type: "rule.match",',
-          `    rule: ${ruleNameCode},`,
-          `    result: ${resultCode},`,
-          "    location: peg$computeLocation(startPos, peg$currPos)",
-          "  });",
-          "} else {",
-          "  peg$tracer.trace({",
-          '    type: "rule.fail",',
-          `    rule: ${ruleNameCode},`,
-          "    location: peg$computeLocation(startPos, startPos)",
-          "  });",
-          "}",
-        ].join("\n")
-      )
+      yield `
+          
+          if (${resultCode} !== peg$FAILED) {
+            peg$tracer.trace({
+              type: "rule.match",
+              rule: ${ruleNameCode},
+              result: ${resultCode},
+              location: peg$computeLocation(startPos, peg$currPos)
+            });
+          } else {
+            peg$tracer.trace({
+              type: "rule.fail",
+              rule: ${ruleNameCode},
+              location: peg$computeLocation(startPos, startPos)
+            });
+          }
+        `
     }
 
-    parts.push(["", `return ${resultCode};`].join("\n"))
-
-    return parts.join("\n")
+    yield
+    yield `return ${resultCode};`
   }
 
-  function generateInterpreter() {
-    const parts: string[] = []
-
-    function generateCondition(cond, argsLength) {
+  function* generateInterpreter(): StringGenerator {
+    function generateCondition(condition: string, argsLength: number) {
       const baseLength = argsLength + 3
       const thenLengthCode = `bc[ip + ${baseLength - 2}]`
       const elseLengthCode = `bc[ip + ${baseLength - 1}]`
 
-      return [
-        "ends.push(end);",
-        `ips.push(ip + ${baseLength} + ${thenLengthCode} + ${elseLengthCode});`,
-        "",
-        `if (${cond}) {`,
-        `  end = ip + ${baseLength} + ${thenLengthCode};`,
-        `  ip += ${baseLength};`,
-        "} else {",
-        `  end = ip + ${baseLength} + ${thenLengthCode} + ${elseLengthCode};`,
-        `  ip += ${baseLength} + ${thenLengthCode};`,
-        "}",
-        "",
-        "break;",
-      ].join("\n")
+      return `
+        ends.push(end);
+        ips.push(ip + ${baseLength} + ${thenLengthCode} + ${elseLengthCode});
+        
+        if (${condition}) {
+          end = ip + ${baseLength} + ${thenLengthCode};
+          ip += ${baseLength};
+        } else {
+          end = ip + ${baseLength} + ${thenLengthCode} + ${elseLengthCode};
+          ip += ${baseLength} + ${thenLengthCode};
+        }
+        
+        break;
+      `
     }
 
-    function generateLoop(cond) {
+    function generateLoop(condition: string) {
       const baseLength = 2
       const bodyLengthCode = `bc[ip + ${baseLength - 1}]`
 
-      return [
-        `if (${cond}) {`,
-        "  ends.push(end);",
-        "  ips.push(ip);",
-        "",
-        `  end = ip + ${baseLength} + ${bodyLengthCode};`,
-        `  ip += ${baseLength};`,
-        "} else {",
-        `  ip += ${baseLength} + ${bodyLengthCode};`,
-        "}",
-        "",
-        "break;",
-      ].join("\n")
+      return `
+        if (${condition}) {
+          ends.push(end);
+          ips.push(ip);
+        
+          end = ip + ${baseLength} + ${bodyLengthCode};
+          ip += ${baseLength};
+        } else {
+          ip += ${baseLength} + ${bodyLengthCode};
+        }
+        
+        break;
+      `
     }
 
     function generateCall() {
       const baseLength = 4
       const paramsLengthCode = `bc[ip + ${baseLength - 1}]`
 
-      return [
-        `params = bc.slice(ip + ${baseLength}, ip + ${baseLength} + ${paramsLengthCode})`,
-        "  .map(p => stack[stack.length - 1 - p]);",
-        "",
-        "stack.splice(",
-        "  stack.length - bc[ip + 2],",
-        "  bc[ip + 2],",
-        "  peg$functions[bc[ip + 1]].apply(null, params)",
-        ");",
-        "",
-        `ip += ${baseLength} + ${paramsLengthCode};`,
-        "break;",
-      ].join("\n")
+      return `
+        params = bc.slice(ip + ${baseLength}, ip + ${baseLength} + ${paramsLengthCode})
+          .map(p => stack[stack.length - 1 - p]);
+        
+        stack.splice(
+          stack.length - bc[ip + 2],
+          bc[ip + 2],
+          peg$functions[bc[ip + 1]].apply(null, params)
+        );
+        
+        ip += ${baseLength} + ${paramsLengthCode};
+        break;
+      `
     }
 
-    parts.push(
-      [
-        "function peg$decode(s) {",
-        '  return s.split("").map(ch => ch.charCodeAt(0) - 32);',
-        "}",
-        "",
-        "function peg$parseRule(index) {",
-      ].join("\n")
-    )
+    yield `
+      function peg$decode(s) {
+        return s.split("").map(ch => ch.charCodeAt(0) - 32);
+      }
+      
+      function peg$parseRule(index) {
+    `
 
     if (options.trace) {
-      parts.push(
-        [
-          "  let bc = peg$bytecode[index];",
-          "  let ip = 0;",
-          "  let ips = [];",
-          "  let end = bc.length;",
-          "  let ends = [];",
-          "  let stack = [];",
-          "  let startPos = peg$currPos;",
-          "  let params, paramsLength, paramsN;",
-        ].join("\n")
-      )
+      yield `
+          let bc = peg$bytecode[index];
+          let ip = 0;
+          let ips = [];
+          let end = bc.length;
+          let ends = [];
+          let stack = [];
+          let startPos = peg$currPos;
+          let params, paramsLength, paramsN;
+      `
     } else {
-      parts.push(
-        [
-          "  let bc = peg$bytecode[index];",
-          "  let ip = 0;",
-          "  let ips = [];",
-          "  let end = bc.length;",
-          "  let ends = [];",
-          "  let stack = [];",
-          "  let params, paramsLength, paramsN;",
-        ].join("\n")
-      )
+      yield `
+          let bc = peg$bytecode[index];
+          let ip = 0;
+          let ips = [];
+          let end = bc.length;
+          let ends = [];
+          let stack = [];
+          let params, paramsLength, paramsN;
+      `
     }
 
-    parts.push(indent2(generateRuleHeader("peg$ruleNames[index]", "index")))
+    yield* generateRuleHeader("peg$ruleNames[index]", "index")
 
-    parts.push(
-      [
-        // The point of the outer loop and the |ips| & |ends| stacks is to avoid
-        // recursive calls for interpreting parts of bytecode. In other words, we
-        // implement the |interpret| operation of the abstract machine without
-        // function calls. Such calls would likely slow the parser down and more
-        // importantly cause stack overflows for complex grammars.
-        "  while (true) {",
-        "    while (ip < end) {",
-        "      switch (bc[ip]) {",
-        `        case ${op.PUSH_EMPTY_STRING}:`, // PUSH_EMPTY_STRING
-        "          stack.push('');",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.PUSH_UNDEFINED}:`, // PUSH_UNDEFINED
-        "          stack.push(undefined);",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.PUSH_NULL}:`, // PUSH_NULL
-        "          stack.push(null);",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.PUSH_FAILED}:`, // PUSH_FAILED
-        "          stack.push(peg$FAILED);",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.PUSH_EMPTY_ARRAY}:`, // PUSH_EMPTY_ARRAY
-        "          stack.push([]);",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.PUSH_CURR_POS}:`, // PUSH_CURR_POS
-        "          stack.push(peg$currPos);",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.POP}:`, // POP
-        "          stack.pop();",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.POP_CURR_POS}:`, // POP_CURR_POS
-        "          peg$currPos = stack.pop();",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.POP_N}:`, // POP_N n
-        "          stack.length -= bc[ip + 1];",
-        "          ip += 2;",
-        "          break;",
-        "",
-        `        case ${op.NIP}:`, // NIP
-        "          stack.splice(-2, 1);",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.APPEND}:`, // APPEND
-        "          stack[stack.length - 2].push(stack.pop());",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.WRAP}:`, // WRAP n
-        "          stack.push(stack.splice(stack.length - bc[ip + 1], bc[ip + 1]));",
-        "          ip += 2;",
-        "          break;",
-        "",
-        `        case ${op.TEXT}:`, // TEXT
-        "          stack.push(input.substring(stack.pop(), peg$currPos));",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.PLUCK}:`, // PLUCK n, k, p1, ..., pK
-        "          paramsLength = bc[ip + 2];",
-        "          paramsN = 3 + paramsLength",
-        "",
-        "          params = bc.slice(ip + 3, ip + paramsN);",
-        "          params = paramsLength === 1",
-        "            ? stack[stack.length - 1 - params[ 0 ]]",
-        "            : params.map(function(p) { return stack[stack.length - 1 - p]; });",
-        "",
-        "          stack.splice(",
-        "            stack.length - bc[ip + 1],",
-        "            bc[ip + 1],",
-        "            params",
-        "          );",
-        "",
-        "          ip += paramsN;",
-        "          break;",
-        "",
-        `        case ${op.IF}:`, // IF t, f
-        indent10(generateCondition("stack[stack.length - 1]", 0)),
-        "",
-        `        case ${op.IF_ERROR}:`, // IF_ERROR t, f
-        indent10(generateCondition("stack[stack.length - 1] === peg$FAILED", 0)),
-        "",
-        `        case ${op.IF_NOT_ERROR}:`, // IF_NOT_ERROR t, f
-        indent10(generateCondition("stack[stack.length - 1] !== peg$FAILED", 0)),
-        "",
-        `        case ${op.WHILE_NOT_ERROR}:`, // WHILE_NOT_ERROR b
-        indent10(generateLoop("stack[stack.length - 1] !== peg$FAILED")),
-        "",
-        `        case ${op.MATCH_ANY}:`, // MATCH_ANY a, f, ...
-        indent10(generateCondition("input.length > peg$currPos", 0)),
-        "",
-        `        case ${op.MATCH_STRING}:`, // MATCH_STRING s, a, f, ...
-        indent10(
-          generateCondition(
-            "input.substr(peg$currPos, peg$literals[bc[ip + 1]].length) === peg$literals[bc[ip + 1]]",
-            1
-          )
-        ),
-        "",
-        `        case ${op.MATCH_STRING_IC}:`, // MATCH_STRING_IC s, a, f, ...
-        indent10(
-          generateCondition(
-            "input.substr(peg$currPos, peg$literals[bc[ip + 1]].length).toLowerCase() === peg$literals[bc[ip + 1]]",
-            1
-          )
-        ),
-        "",
-        `        case ${op.MATCH_CLASS}:`, // MATCH_CLASS c, a, f, ...
-        indent10(
-          generateCondition("peg$regexps[bc[ip + 1]].test(input.charAt(peg$currPos))", 1)
-        ),
-        "",
-        `        case ${op.ACCEPT_N}:`, // ACCEPT_N n
-        "          stack.push(input.substr(peg$currPos, bc[ip + 1]));",
-        "          peg$currPos += bc[ip + 1];",
-        "          ip += 2;",
-        "          break;",
-        "",
-        `        case ${op.ACCEPT_STRING}:`, // ACCEPT_STRING s
-        "          stack.push(peg$literals[bc[ip + 1]]);",
-        "          peg$currPos += peg$literals[bc[ip + 1]].length;",
-        "          ip += 2;",
-        "          break;",
-        "",
-        `        case ${op.EXPECT}:`, // EXPECT e
-        "          rule$expects(peg$expectations[bc[ip + 1]]);",
-        "          ip += 2;",
-        "          break;",
-        "",
-        `        case ${op.LOAD_SAVED_POS}:`, // LOAD_SAVED_POS p
-        "          peg$savedPos = stack[stack.length - 1 - bc[ip + 1]];",
-        "          ip += 2;",
-        "          break;",
-        "",
-        `        case ${op.UPDATE_SAVED_POS}:`, // UPDATE_SAVED_POS
-        "          peg$savedPos = peg$currPos;",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.CALL}:`, // CALL f, n, pc, p1, p2, ..., pN
-        indent10(generateCall()),
-        "",
-        `        case ${op.RULE}:`, // RULE r
-        "          stack.push(peg$parseRule(bc[ip + 1]));",
-        "          ip += 2;",
-        "          break;",
-        "",
-        `        case ${op.SILENT_FAILS_ON}:`, // SILENT_FAILS_ON
-        "          peg$silentFails++;",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.SILENT_FAILS_OFF}:`, // SILENT_FAILS_OFF
-        "          peg$silentFails--;",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.EXPECT_NS_BEGIN}:`, // EXPECT_NS_BEGIN
-        "          peg$begin();",
-        "          ip++;",
-        "          break;",
-        "",
-        `        case ${op.EXPECT_NS_END}:`, // EXPECT_NS_END invert
-        "          peg$end(bc[ip + 1]);",
-        "          ip += 2;",
-        "          break;",
-        "",
-        "        // istanbul ignore next",
-        "        default:",
-        "          throw new Error(",
-        `            "Rule #" + index + "${
-          options.trace ? " ('\" + peg$ruleNames[ index ] + \"')" : ""
-        }, position " + ip + ": "`,
-        '            + "Invalid opcode " + bc[ip] + "."',
-        "          );",
-        "      }",
-        "    }",
-        "",
-        "    if (ends.length > 0) {",
-        "      end = ends.pop();",
-        "      ip = ips.pop();",
-        "    } else {",
-        "      break;",
-        "    }",
-        "  }",
-      ].join("\n")
-    )
+    // The point of the outer loop and the |ips| & |ends| stacks is to avoid
+    // recursive calls for interpreting parts of bytecode. In other words, we
+    // implement the |interpret| operation of the abstract machine without
+    // function calls. Such calls would likely slow the parser down and more
+    // importantly cause stack overflows for complex grammars.
 
-    parts.push(indent2(generateRuleFooter("peg$ruleNames[index]", "stack[0]")))
-    parts.push("}")
+    yield `
+      while (true) {
+        while (ip < end) {
+          switch (bc[ip]) {
+            case ${op.PUSH_EMPTY_STRING}: // PUSH_EMPTY_STRING
+              stack.push('');
+              ip++;
+              break;
+    
+            case ${op.PUSH_UNDEFINED}: // PUSH_UNDEFINED
+              stack.push(undefined);
+              ip++;
+              break;
+    
+            case ${op.PUSH_NULL}: // PUSH_NULL
+              stack.push(null);
+              ip++;
+              break;
+    
+            case ${op.PUSH_FAILED}: // PUSH_FAILED
+              stack.push(peg$FAILED);
+              ip++;
+              break;
+    
+            case ${op.PUSH_EMPTY_ARRAY}: // PUSH_EMPTY_ARRAY
+              stack.push([]);
+              ip++;
+              break;
+    
+            case ${op.PUSH_CURR_POS}: // PUSH_CURR_POS
+              stack.push(peg$currPos);
+              ip++;
+              break;
+    
+            case ${op.POP}: // POP
+              stack.pop();
+              ip++;
+              break;
+      
+            case ${op.POP_CURR_POS}: // POP_CURR_POS
+              peg$currPos = stack.pop();
+              ip++;
+              break;
+    
+            case ${op.POP_N}: // POP_N n
+              stack.length -= bc[ip + 1];
+              ip += 2;
+              break;
+    
+            case ${op.NIP}: // NIP
+              stack.splice(-2, 1);
+              ip++;
+              break;
+    
+            case ${op.APPEND}: // APPEND
+              stack[stack.length - 2].push(stack.pop());
+              ip++;
+              break;
+    
+            case ${op.WRAP}: // WRAP n
+              stack.push(stack.splice(stack.length - bc[ip + 1], bc[ip + 1]));
+              ip += 2;
+              break;
+    
+            case ${op.TEXT}: // TEXT
+              stack.push(input.substring(stack.pop(), peg$currPos));
+              ip++;
+              break;
+    
+            case ${op.PLUCK}: // PLUCK n, k, p1, ..., pK
+                paramsLength = bc[ip + 2];
+                paramsN = 3 + paramsLength
+      
+                params = bc.slice(ip + 3, ip + paramsN);
+                params = paramsLength === 1
+                  ? stack[stack.length - 1 - params[ 0 ]]
+                  : params.map(function(p) { return stack[stack.length - 1 - p]; });
+      
+                stack.splice(
+                  stack.length - bc[ip + 1],
+                  bc[ip + 1],
+                  params
+                );
+      
+                ip += paramsN;
+                break;
+      
+              case ${op.IF}: // IF t, f
+                ${generateCondition("stack[stack.length - 1]", 0)}
+      
+              case ${op.IF_ERROR}: // IF_ERROR t, f
+                ${generateCondition("stack[stack.length - 1] === peg$FAILED", 0)}
+      
+              case ${op.IF_NOT_ERROR}: // IF_NOT_ERROR t, f
+                ${generateCondition("stack[stack.length - 1] !== peg$FAILED", 0)}
+      
+              case ${op.WHILE_NOT_ERROR}: // WHILE_NOT_ERROR b
+                ${generateLoop("stack[stack.length - 1] !== peg$FAILED")}
+      
+              case ${op.MATCH_ANY}: // MATCH_ANY a, f, ...
+                ${generateCondition("input.length > peg$currPos", 0)}
+      
+              case ${op.MATCH_STRING}: // MATCH_STRING s, a, f, ...
+                ${generateCondition(
+                  "input.substr(peg$currPos, peg$literals[bc[ip + 1]].length) === peg$literals[bc[ip + 1]]",
+                  1
+                )}
+      
+              case ${op.MATCH_STRING_IC}: // MATCH_STRING_IC s, a, f, ...
+                ${generateCondition(
+                  "input.substr(peg$currPos, peg$literals[bc[ip + 1]].length).toLowerCase() === peg$literals[bc[ip + 1]]",
+                  1
+                )}
+      
+              case ${op.MATCH_CLASS}: // MATCH_CLASS c, a, f, ...
+                ${generateCondition(
+                  "peg$regexps[bc[ip + 1]].test(input.charAt(peg$currPos))",
+                  1
+                )}
+      
+              case ${op.ACCEPT_N}: // ACCEPT_N n
+                stack.push(input.substr(peg$currPos, bc[ip + 1]));
+                peg$currPos += bc[ip + 1];
+                ip += 2;
+                break;
+      
+              case ${op.ACCEPT_STRING}: // ACCEPT_STRING s
+                stack.push(peg$literals[bc[ip + 1]]);
+                peg$currPos += peg$literals[bc[ip + 1]].length;
+                ip += 2;
+                break;
+      
+              case ${op.EXPECT}: // EXPECT e
+                rule$expects(peg$expectations[bc[ip + 1]]);
+                ip += 2;
+                break;
+      
+              case ${op.LOAD_SAVED_POS}: // LOAD_SAVED_POS p
+                peg$savedPos = stack[stack.length - 1 - bc[ip + 1]];
+                ip += 2;
+                break;
+      
+              case ${op.UPDATE_SAVED_POS}: // UPDATE_SAVED_POS
+                peg$savedPos = peg$currPos;
+                ip++;
+                break;
+      
+              case ${op.CALL}: // CALL f, n, pc, p1, p2, ..., pN
+                ${generateCall()}
+      
+              case ${op.RULE}: // RULE r
+                stack.push(peg$parseRule(bc[ip + 1]));
+                ip += 2;
+                break;
+      
+              case ${op.SILENT_FAILS_ON}: // SILENT_FAILS_ON
+                peg$silentFails++;
+                ip++;
+                break;
+      
+              case ${op.SILENT_FAILS_OFF}: // SILENT_FAILS_OFF
+                peg$silentFails--;
+                ip++;
+                break;
+      
+              case ${op.EXPECT_NS_BEGIN}: // EXPECT_NS_BEGIN
+                peg$begin();
+                ip++;
+                break;
+      
+              case ${op.EXPECT_NS_END}: // EXPECT_NS_END invert
+                peg$end(bc[ip + 1]);
+                ip += 2;
+                break;
+      
+              // istanbul ignore next
+              default:
+                throw new Error(
+                  "Rule #" + index + "${
+                    options.trace ? " ('\" + peg$ruleNames[ index ] + \"')" : ""
+                  }, position " + ip + ": "
+                  + "Invalid opcode " + bc[ip] + "."
+                );
+            }
+          }
+      
+          if (ends.length > 0) {
+            end = ends.pop();
+            ip = ips.pop();
+          } else {
+            break;
+          }
+        }
+    `
 
-    return parts.join("\n")
+    yield* generateRuleFooter("peg$ruleNames[index]", "stack[0]")
+    yield "}"
   }
 
-  function generateRuleFunction(rule: Rule) {
-    const parts: string[] = []
+  function* generateRuleFunction(rule: Rule): StringGenerator {
     const stackVars: string[] = []
 
     function s(i: number) {
@@ -612,32 +595,29 @@ export function generateJS(
       },
     }
 
-    function compile(bc: number[]) {
+    function* compile(bc: number[]) {
       let ip = 0
       const end = bc.length
-      const parts: string[] = []
-      let value
 
-      function compileCondition(cond: string, argCount: number) {
+      function* compileCondition(condition: string, argCount: number): StringGenerator {
         const pos = ip
         const baseLength = argCount + 3
         const thenLength = bc[ip + baseLength - 2]
         const elseLength = bc[ip + baseLength - 1]
         const baseSp = stack.sp
-        let thenCode
-        let elseCode
-        let thenSp
-        let elseSp
+
+        yield `if (${condition}) {`
 
         ip += baseLength
-        thenCode = compile(bc.slice(ip, ip + thenLength))
-        thenSp = stack.sp
+        yield* compile(bc.slice(ip, ip + thenLength))
+        const thenSp = stack.sp
         ip += thenLength
 
         if (elseLength > 0) {
           stack.sp = baseSp
-          elseCode = compile(bc.slice(ip, ip + elseLength))
-          elseSp = stack.sp
+          yield "} else {"
+          yield* compile(bc.slice(ip, ip + elseLength))
+          const elseSp = stack.sp
           ip += elseLength
 
           // istanbul ignore if
@@ -647,27 +627,19 @@ export function generateJS(
             )
           }
         }
-
-        parts.push(`if (${cond}) {`)
-        parts.push(indent2(thenCode))
-        if (elseLength > 0) {
-          parts.push("} else {")
-          parts.push(indent2(elseCode))
-        }
-        parts.push("}")
+        yield "}"
       }
 
-      function compileLoop(cond: string) {
+      function* compileLoop(condition: string) {
         const pos = ip
         const baseLength = 2
         const bodyLength = bc[ip + baseLength - 1]
         const baseSp = stack.sp
-        let bodyCode
-        let bodySp
+        yield `while (${condition}) {`
 
         ip += baseLength
-        bodyCode = compile(bc.slice(ip, ip + bodyLength))
-        bodySp = stack.sp
+        yield* compile(bc.slice(ip, ip + bodyLength))
+        const bodySp = stack.sp
         ip += bodyLength
 
         // istanbul ignore if
@@ -677,12 +649,10 @@ export function generateJS(
           )
         }
 
-        parts.push(`while (${cond}) {`)
-        parts.push(indent2(bodyCode))
-        parts.push("}")
+        yield "}"
       }
 
-      function compileCall() {
+      function* compileCall() {
         const baseLength = 4
         const paramsLength = bc[ip + baseLength - 1]
 
@@ -692,39 +662,42 @@ export function generateJS(
           .join(", ")})`
 
         stack.pop2(bc[ip + 2])
-        parts.push(stack.push(value))
+        yield stack.push(value)
         ip += baseLength + paramsLength
       }
 
+      const nextByteCode = () => bc[ip + 1]
+
       while (ip < end) {
+        let value: string
         switch (bc[ip]) {
           case op.PUSH_EMPTY_STRING: // PUSH_EMPTY_STRING
-            parts.push(stack.push("''"))
+            yield stack.push("''")
             ip++
             break
 
           case op.PUSH_CURR_POS: // PUSH_CURR_POS
-            parts.push(stack.push("peg$currPos"))
+            yield stack.push("peg$currPos")
             ip++
             break
 
           case op.PUSH_UNDEFINED: // PUSH_UNDEFINED
-            parts.push(stack.push("undefined"))
+            yield stack.push("undefined")
             ip++
             break
 
           case op.PUSH_NULL: // PUSH_NULL
-            parts.push(stack.push("null"))
+            yield stack.push("null")
             ip++
             break
 
           case op.PUSH_FAILED: // PUSH_FAILED
-            parts.push(stack.push("peg$FAILED"))
+            yield stack.push("peg$FAILED")
             ip++
             break
 
           case op.PUSH_EMPTY_ARRAY: // PUSH_EMPTY_ARRAY
-            parts.push(stack.push("[]"))
+            yield stack.push("[]")
             ip++
             break
 
@@ -734,35 +707,35 @@ export function generateJS(
             break
 
           case op.POP_CURR_POS: // POP_CURR_POS
-            parts.push(`peg$currPos = ${stack.pop()};`)
+            yield `peg$currPos = ${stack.pop()};`
             ip++
             break
 
           case op.POP_N: // POP_N n
-            stack.pop2(bc[ip + 1])
+            stack.pop2(nextByteCode())
             ip += 2
             break
 
           case op.NIP: // NIP
             value = stack.pop()
             stack.pop()
-            parts.push(stack.push(value))
+            yield stack.push(value)
             ip++
             break
 
           case op.APPEND: // APPEND
             value = stack.pop()
-            parts.push(`${stack.top()}.push(${value});`)
+            yield `${stack.top()}.push(${value});`
             ip++
             break
 
           case op.WRAP: // WRAP n
-            parts.push(stack.push(`[${stack.pop2(bc[ip + 1]).join(", ")}]`))
+            yield stack.push(`[${stack.pop2(nextByteCode()).join(", ")}]`)
             ip += 2
             break
 
           case op.TEXT: // TEXT
-            parts.push(stack.push(`input.substring(${stack.pop()}, peg$currPos)`))
+            yield stack.push(`input.substring(${stack.pop()}, peg$currPos)`)
             ip++
             break
 
@@ -771,128 +744,127 @@ export function generateJS(
             const baseLength = 3
             const paramsLength = bc[ip + baseLength - 1]
             const n = baseLength + paramsLength
-            value = bc.slice(ip + baseLength, ip + n)
-            value =
+            const value = bc.slice(ip + baseLength, ip + n)
+            const value1 =
               paramsLength === 1
                 ? stack.index(value[0])
                 : `[ ${value.map(p => stack.index(p)).join(", ")} ]`
-            stack.pop2(bc[ip + 1])
-            parts.push(stack.push(value))
+            stack.pop2(nextByteCode())
+            yield stack.push(value1)
             ip += n
             break
           }
 
           case op.IF: // IF t, f
-            compileCondition(stack.top(), 0)
+            yield* compileCondition(stack.top(), 0)
             break
 
           case op.IF_ERROR: // IF_ERROR t, f
-            compileCondition(`${stack.top()} === peg$FAILED`, 0)
+            yield* compileCondition(`${stack.top()} === peg$FAILED`, 0)
             break
 
           case op.IF_NOT_ERROR: // IF_NOT_ERROR t, f
-            compileCondition(`${stack.top()} !== peg$FAILED`, 0)
+            yield* compileCondition(`${stack.top()} !== peg$FAILED`, 0)
             break
 
           case op.WHILE_NOT_ERROR: // WHILE_NOT_ERROR b
-            compileLoop(`${stack.top()} !== peg$FAILED`)
+            yield* compileLoop(`${stack.top()} !== peg$FAILED`)
             break
 
           case op.MATCH_ANY: // MATCH_ANY a, f, ...
-            compileCondition("input.length > peg$currPos", 0)
+            yield* compileCondition("input.length > peg$currPos", 0)
             break
 
           case op.MATCH_STRING: // MATCH_STRING s, a, f, ...
-            compileCondition(
-              ast.literals[bc[ip + 1]].length > 1
-                ? `input.substr(peg$currPos, ${ast.literals[bc[ip + 1]].length}) === ${l(
-                    bc[ip + 1]
-                  )}`
+            yield* compileCondition(
+              ast.literals[nextByteCode()].length > 1
+                ? `input.substr(peg$currPos, ${
+                    ast.literals[nextByteCode()].length
+                  }) === ${l(nextByteCode())}`
                 : `input.charCodeAt(peg$currPos) === ${ast.literals[
-                    bc[ip + 1]
+                    nextByteCode()
                   ].charCodeAt(0)}`,
               1
             )
             break
 
           case op.MATCH_STRING_IC: // MATCH_STRING_IC s, a, f, ...
-            compileCondition(
+            yield* compileCondition(
               `input.substr(peg$currPos, ${
-                ast.literals[bc[ip + 1]].length
-              }).toLowerCase() === ${l(bc[ip + 1])}`,
+                ast.literals[nextByteCode()].length
+              }).toLowerCase() === ${l(nextByteCode())}`,
               1
             )
             break
 
           case op.MATCH_CLASS: // MATCH_CLASS c, a, f, ...
-            compileCondition(`${r(bc[ip + 1])}.test(input.charAt(peg$currPos))`, 1)
+            yield* compileCondition(
+              `${r(nextByteCode())}.test(input.charAt(peg$currPos))`,
+              1
+            )
             break
 
           case op.ACCEPT_N: // ACCEPT_N n
-            parts.push(
-              stack.push(
-                bc[ip + 1] > 1
-                  ? `input.substr(peg$currPos, ${bc[ip + 1]})`
-                  : "input.charAt(peg$currPos)"
-              )
+            yield stack.push(
+              nextByteCode() > 1
+                ? `input.substr(peg$currPos, ${nextByteCode()})`
+                : "input.charAt(peg$currPos)"
             )
-            parts.push(
-              bc[ip + 1] > 1 ? `peg$currPos += ${bc[ip + 1]};` : "peg$currPos++;"
-            )
+            yield nextByteCode() > 1
+              ? `peg$currPos += ${nextByteCode()};`
+              : "peg$currPos++;"
             ip += 2
             break
 
           case op.ACCEPT_STRING: // ACCEPT_STRING s
-            parts.push(stack.push(l(bc[ip + 1])))
-            parts.push(
-              ast.literals[bc[ip + 1]].length > 1
-                ? `peg$currPos += ${ast.literals[bc[ip + 1]].length};`
-                : "peg$currPos++;"
-            )
+            yield stack.push(l(nextByteCode()))
+            yield ast.literals[nextByteCode()].length > 1
+              ? `peg$currPos += ${ast.literals[nextByteCode()].length};`
+              : "peg$currPos++;"
             ip += 2
             break
 
           case op.EXPECT: // EXPECT e
-            parts.push(`rule$expects(${e(bc[ip + 1])});`)
+            yield `rule$expects(${e(nextByteCode())});`
             ip += 2
             break
 
           case op.LOAD_SAVED_POS: // LOAD_SAVED_POS p
-            parts.push(`peg$savedPos = ${stack.index(bc[ip + 1])};`)
+            yield `peg$savedPos = ${stack.index(nextByteCode())};`
             ip += 2
             break
 
           case op.UPDATE_SAVED_POS: // UPDATE_SAVED_POS
-            parts.push("peg$savedPos = peg$currPos;")
+            yield "peg$savedPos = peg$currPos;"
             ip++
             break
 
           case op.CALL: // CALL f, n, pc, p1, p2, ..., pN
-            compileCall()
+            yield* compileCall()
             break
 
           case op.RULE: // RULE r
-            parts.push(stack.push(`peg$parse${ast.rules[bc[ip + 1]].name}()`))
+            yield stack.push(`peg$parse${ast.rules[nextByteCode()].name}()`)
             ip += 2
             break
 
           case op.SILENT_FAILS_ON: // SILENT_FAILS_ON
-            parts.push("peg$silentFails++;")
+            yield "peg$silentFails++;"
             ip++
             break
 
           case op.SILENT_FAILS_OFF: // SILENT_FAILS_OFF
-            parts.push("peg$silentFails--;")
+            yield "peg$silentFails--;"
             ip++
             break
 
           case op.EXPECT_NS_BEGIN: // EXPECT_NS_BEGIN
-            parts.push("peg$begin();")
+            yield "peg$begin();"
             ip++
             break
 
           case op.EXPECT_NS_END: // EXPECT_NS_END invert
-            parts.push(`peg$end(${bc[ip + 1] !== 0});`)
+            yield `peg$end(${nextByteCode() !== 0});`
             ip += 2
             break
 
@@ -903,59 +875,46 @@ export function generateJS(
             )
         }
       }
-
-      return parts.join("\n")
     }
 
-    const code = compile(rule.bytecode!)
+    // Exhaust the compilation first because maxSp is needed before
+    // yielding the full code
+    const code = join(compile(rule.bytecode!))
 
-    parts.push(`function peg$parse${rule.name}() {`)
+    yield `function peg$parse${rule.name}() {`
 
     if (options.trace) {
-      parts.push("  var startPos = peg$currPos;")
+      yield "  let startPos = peg$currPos;"
     }
 
     for (let i = 0; i <= stack.maxSp; i++) {
       stackVars[i] = s(i)
     }
 
-    parts.push(`  var ${stackVars.join(", ")};`)
+    yield `  let ${stackVars.join(", ")};`
 
-    parts.push(
-      indent2(
-        generateRuleHeader(
-          `"${util.stringEscape(rule.name)}"`,
-          ast.indexOfRule(rule.name)
-        )
-      )
-    )
-    parts.push(indent2(code))
-    parts.push(indent2(generateRuleFooter(`"${util.stringEscape(rule.name)}"`, s(0))))
+    yield* generateRuleHeader(JSON.stringify(rule.name), ast.indexOfRule(rule.name))
+    yield code
+    yield* generateRuleFooter(JSON.stringify(rule.name), s(0))
 
-    parts.push("}")
-
-    return parts.join("\n")
+    yield "}"
   }
 
-  function generateTopLevel() {
-    const parts: string[] = []
-
+  function* generateTopLevel(): StringGenerator {
     if (options.trace) {
       if (!use("DefaultTracer"))
-        parts.push(
-          ["var peg$FauxTracer = {", "  trace: function(event) { }", "};", ""].join("\n")
-        )
+        yield `
+          const peg$FauxTracer = {
+            trace(event) { }
+          }
+        `
     }
 
-    parts.push(
-      [
-        "function peg$parse(input, options) {",
-        "  options = options !== undefined ? options : {};",
-        "",
-        "  var peg$FAILED = {};",
-        "",
-      ].join("\n")
-    )
+    yield `
+      function peg$parse(input, options = {}) {
+        const peg$FAILED = Symbol();
+      
+    `
 
     if (options.optimize === "size") {
       const startRuleIndices = `{ ${options.allowedStartRules
@@ -963,362 +922,341 @@ export function generateJS(
         .join(", ")} }`
       const startRuleIndex = ast.indexOfRule(options.allowedStartRules[0])
 
-      parts.push(
-        [
-          `  let peg$startRuleIndices = ${startRuleIndices};`,
-          `  let peg$startRuleIndex = ${startRuleIndex};`,
-        ].join("\n")
-      )
+      yield `
+        let peg$startRuleIndices = ${startRuleIndices};
+        let peg$startRuleIndex = ${startRuleIndex};
+      `
     } else {
       const startRuleFunctions = `{ ${options.allowedStartRules
         .map(r => `${r}: peg$parse${r}`)
         .join(", ")} }`
       const startRuleFunction = `peg$parse${options.allowedStartRules[0]}`
 
-      parts.push(
-        [
-          `  let peg$startRuleFunctions = ${startRuleFunctions};`,
-          `  let peg$startRuleFunction = ${startRuleFunction};`,
-        ].join("\n")
-      )
+      yield `
+          let peg$startRuleFunctions = ${startRuleFunctions};
+          let peg$startRuleFunction = ${startRuleFunction};
+      `
     }
 
-    parts.push("")
+    yield
 
-    parts.push(indent2(generateTables()))
+    yield* generateTables()
 
-    parts.push(
-      [
-        "",
-        "  let peg$currPos = 0;",
-        "  let peg$savedPos = 0;",
-        "  let peg$posDetailsCache = [{ line: 1, column: 1 }];",
-        "  let peg$expected = [];",
-        "  let peg$silentFails = 0;", // 0 = report failures, > 0 = silence failures
-        "",
-      ].join("\n")
-    )
+    yield `
+      
+        let peg$currPos = 0;
+        let peg$savedPos = 0;
+        let peg$posDetailsCache = [{ line: 1, column: 1 }];
+        let peg$expected = [];
+        let peg$silentFails = 0; // 0 = report failures, > 0 = silence failures
+      
+    `
 
     if (options.cache) {
-      parts.push(["  let peg$resultsCache = {};", ""].join("\n"))
+      yield "  let peg$resultsCache = {};"
+      yield
     }
 
     if (options.trace) {
       if (options.optimize === "size") {
-        const ruleNames = `[${ast.rules
-          .map(r => `"${util.stringEscape(r.name)}"`)
-          .join(", ")}]`
+        const ruleNames = `[${ast.rules.map(r => JSON.stringify(r.name)).join(", ")}]`
 
-        parts.push([`  let peg$ruleNames = ${ruleNames};`, ""].join("\n"))
+        yield `  let peg$ruleNames = ${ruleNames};`
+        yield
       }
 
-      if (use("DefaultTracer"))
-        parts.push(
-          [
-            '  let peg$tracer = "tracer" in options ? options.tracer : new peg$DefaultTracer();',
-            "",
-          ].join("\n")
-        )
-      else
-        parts.push(
-          [
-            '  let peg$tracer = "tracer" in options ? options.tracer : peg$FauxTracer;',
-            "",
-          ].join("\n")
-        )
+      if (use("DefaultTracer")) {
+        yield '  let peg$tracer = "tracer" in options ? options.tracer : new peg$DefaultTracer();'
+        yield
+      } else {
+        yield '  let peg$tracer = "tracer" in options ? options.tracer : peg$FauxTracer;'
+        yield
+      }
     }
 
-    parts.push(["  var peg$result;", ""].join("\n"))
+    yield "  let peg$result;"
+    yield
 
     if (options.optimize === "size") {
-      parts.push(
-        [
-          '  if ("startRule" in options) {',
-          "    if (!(options.startRule in peg$startRuleIndices)) {",
-          '      throw new Error("Can\'t start parsing from rule \\"" + options.startRule + "\\".");',
-          "    }",
-          "",
-          "    peg$startRuleIndex = peg$startRuleIndices[options.startRule];",
-          "  }",
-        ].join("\n")
-      )
+      yield `
+          if ("startRule" in options) {
+            if (!(options.startRule in peg$startRuleIndices)) {
+              throw new Error("Can’t start parsing from rule “" + options.startRule + "”.");
+            }
+        
+            peg$startRuleIndex = peg$startRuleIndices[options.startRule];
+          }
+      `
     } else {
-      parts.push(
-        [
-          '  if ("startRule" in options) {',
-          "    if (!(options.startRule in peg$startRuleFunctions)) {",
-          '      throw new Error("Can\'t start parsing from rule \\"" + options.startRule + "\\".");',
-          "    }",
-          "",
-          "    peg$startRuleFunction = peg$startRuleFunctions[options.startRule];",
-          "  }",
-        ].join("\n")
-      )
+      yield `
+          if ("startRule" in options) {
+            if (!(options.startRule in peg$startRuleFunctions)) {
+              throw new Error("Can’t start parsing from rule “" + options.startRule + "”.");
+            }
+        
+            peg$startRuleFunction = peg$startRuleFunctions[options.startRule];
+          }
+      `
     }
 
     if (use("text")) {
-      parts.push(
-        [
-          "",
-          "  function text() {",
-          "    return input.substring(peg$savedPos, peg$currPos);",
-          "  }",
-        ].join("\n")
-      )
+      yield `
+        
+          function text() {
+            return input.substring(peg$savedPos, peg$currPos);
+          }
+      `
     }
 
     if (use("offset")) {
-      parts.push(
-        ["", "  function offset() {", "    return peg$savedPos;", "  }"].join("\n")
-      )
+      yield
+      yield "  function offset() {"
+      yield "    return peg$savedPos;"
+      yield "  }"
     }
 
     if (use("range")) {
-      parts.push(
-        [
-          "",
-          "  function range() {",
-          "    return [peg$savedPos, peg$currPos];",
-          "  }",
-        ].join("\n")
-      )
+      yield `
+        function range() {
+          return [peg$savedPos, peg$currPos];
+        }
+      `
     }
 
     if (use("location")) {
-      parts.push(
-        [
-          "",
-          "  function location() {",
-          "    return peg$computeLocation(peg$savedPos, peg$currPos);",
-          "  }",
-        ].join("\n")
-      )
+      yield `
+        function location() {
+          return peg$computeLocation(peg$savedPos, peg$currPos);
+        }
+      `
     }
 
     if (use("expected")) {
-      parts.push(
-        [
-          "",
-          "  function expected(description, location) {",
-          "    location = location !== undefined",
-          "      ? location",
-          "      : peg$computeLocation(peg$savedPos, peg$currPos);",
-          "",
-          "    throw peg$buildStructuredError(",
-          "      [peg$otherExpectation(description)],",
-          "      input.substring(peg$savedPos, peg$currPos),",
-          "      location",
-          "    );",
-          "  }",
-        ].join("\n")
-      )
+      yield `
+        function expected(description, location) {
+          location = location !== undefined
+            ? location
+            : peg$computeLocation(peg$savedPos, peg$currPos);
+      
+          throw peg$buildStructuredError(
+            [peg$otherExpectation(description)],
+            input.substring(peg$savedPos, peg$currPos),
+            location
+          );
+        }
+      `
     }
 
     if (use("error")) {
-      parts.push(
-        [
-          "",
-          "  function error(message, location) {",
-          "    location = location !== undefined",
-          "      ? location",
-          "      : peg$computeLocation(peg$savedPos, peg$currPos);",
-          "",
-          "    throw peg$buildSimpleError(message, location);",
-          "  }",
+      yield `
+        
+          function error(message, location) {
+            location = location !== undefined
+              ? location
+              : peg$computeLocation(peg$savedPos, peg$currPos);
+        
+            throw peg$buildSimpleError(message, location);
+          }
+      `
+    }
+
+    /*
         ].join("\n")
       )
     }
 
     parts.push(
-      [
-        "",
-        "  function peg$literalExpectation(text, ignoreCase) {",
-        '    return { type: "literal", text: text, ignoreCase: ignoreCase };',
-        "  }",
-        "",
-        "  function peg$classExpectation(parts, inverted, ignoreCase) {",
-        '    return { type: "class", parts: parts, inverted: inverted, ignoreCase: ignoreCase };',
-        "  }",
-        "",
-        "  function peg$anyExpectation() {",
-        '    return { type: "any" };',
-        "  }",
-        "",
-        "  function peg$endExpectation() {",
-        '    return { type: "end" };',
-        "  }",
-        "",
-        "  function peg$otherExpectation(description) {",
-        '    return { type: "other", description: description };',
-        "  }",
-        "",
-        "  function peg$computePosDetails(pos) {",
-        "    var details = peg$posDetailsCache[pos];",
-        "    var p;",
-        "",
-        "    if (details) {",
-        "      return details;",
-        "    } else {",
-        "      p = pos - 1;",
-        "      while (!peg$posDetailsCache[p]) {",
-        "        p--;",
-        "      }",
-        "",
-        "      details = peg$posDetailsCache[p];",
-        "      details = {",
-        "        line: details.line,",
-        "        column: details.column",
-        "      };",
-        "",
-        "      while (p < pos) {",
-        "        if (input.charCodeAt(p) === 10) {",
-        "          details.line++;",
-        "          details.column = 1;",
-        "        } else {",
-        "          details.column++;",
-        "        }",
-        "",
-        "        p++;",
-        "      }",
-        "",
-        "      peg$posDetailsCache[pos] = details;",
-        "",
-        "      return details;",
-        "    }",
-        "  }",
-        "",
-        use("filename")
-          ? '  var peg$VALIDFILENAME = typeof options.filename === "string" && options.filename.length > 0;'
-          : "",
-        "  function peg$computeLocation(startPos, endPos) {",
-        "    const loc = {};",
-        "",
-        use("filename")
-          ? "    if (peg$VALIDFILENAME) loc.filename = options.filename;"
-          : "",
-        "",
-        "    const startPosDetails = peg$computePosDetails(startPos);",
-        "    loc.start = {",
-        "      offset: startPos,",
-        "      line: startPosDetails.line,",
-        "      column: startPosDetails.column",
-        "    };",
-        "",
-        "    const endPosDetails = peg$computePosDetails(endPos);",
-        "    loc.end = {",
-        "      offset: endPos,",
-        "      line: endPosDetails.line,",
-        "      column: endPosDetails.column",
-        "    };",
-        "",
-        "    return loc;",
-        "  }",
-        "",
-        "  function peg$begin() {",
-        "    peg$expected.push({ pos: peg$currPos, variants: [] });",
-        "  }",
-        "",
-        "  function peg$expect(expected) {",
-        "    const top = peg$expected[peg$expected.length - 1];",
-        "",
-        "    if (peg$currPos < top.pos) { return; }",
-        "",
-        "    if (peg$currPos > top.pos) {",
-        "      top.pos = peg$currPos;",
-        "      top.variants = [];",
-        "    }",
-        "",
-        "    top.variants.push(expected);",
-        "  }",
-        "",
-        "  function peg$end(invert) {",
-        "    const expected = peg$expected.pop();",
-        "    const top = peg$expected[peg$expected.length - 1];",
-        "    let variants = expected.variants;",
-        "",
-        "    if (top.pos !== expected.pos) { return; }",
-        "",
-        "    if (invert) {",
-        "      variants = variants.map(function(e) {",
-        '        return e.type === "not" ? e.expected : { type: "not", expected: e };',
-        "      });",
-        "    }",
-        "",
-        "    Array.prototype.push.apply(top.variants, variants);",
-        "  }",
-        "",
-        "  function peg$buildSimpleError(message, location) {",
-        "    return new peg$SyntaxError(message, null, null, location);",
-        "  }",
-        "",
-        "  function peg$buildStructuredError(expected, found, location) {",
-        "    return new peg$SyntaxError(",
-        "      peg$SyntaxError.buildMessage(expected, found, location),",
-        "      expected,",
-        "      found,",
-        "      location",
-        "    );",
-        "  }",
-        "",
-        "  function peg$buildError() {",
-        "    const expected = peg$expected[0];",
-        "    const failPos = expected.pos;",
-        "",
-        "    return peg$buildStructuredError(",
-        "      expected.variants,",
-        "      failPos < input.length ? input.charAt(failPos) : null,",
-        "      failPos < input.length",
-        "        ? peg$computeLocation(failPos, failPos + 1)",
-        "        : peg$computeLocation(failPos, failPos)",
-        "    );",
-        "  }",
-        "",
-      ].join("\n")
-    )
+        [
+          "",
+    */
+
+    yield `
+      function peg$literalExpectation(text, ignoreCase) {
+        return { type: "literal", text, ignoreCase };
+      }
+    
+      function peg$classExpectation(parts, inverted, ignoreCase) {
+        return { type: "class", parts, inverted, ignoreCase };
+      }
+    
+      function peg$anyExpectation() {
+        return { type: "any" };
+      }
+    
+      function peg$endExpectation() {
+        return { type: "end" };
+      }
+    
+      function peg$otherExpectation(description) {
+        return { type: "other", description };
+      }
+    
+      function peg$computePosDetails(pos) {
+        let details = peg$posDetailsCache[pos];
+    
+        if (details) {
+          return details;
+        } else {
+          let p = pos - 1;
+          while (!peg$posDetailsCache[p]) {
+            p--;
+          }
+    
+          details = peg$posDetailsCache[p];
+          details = {
+            line: details.line,
+            column: details.column
+          };
+    
+          while (p < pos) {
+            if (input.charCodeAt(p) === 10) {
+              details.line++;
+              details.column = 1;
+            } else {
+              details.column++;
+            }
+    
+            p++;
+          }
+    
+          peg$posDetailsCache[pos] = details;
+    
+          return details;
+        }
+      }
+    `
+
+    if (use("filename")) {
+      yield '  let peg$VALIDFILENAME = typeof options.filename === "string" && options.filename.length > 0;'
+    }
+
+    yield `
+      function peg$computeLocation(startPos, endPos) {
+        const loc = {};
+    `
+
+    if (use("filename")) {
+      yield `if (peg$VALIDFILENAME) {
+        loc.filename = options.filename;
+      }`
+    }
+
+    yield `
+        const startPosDetails = peg$computePosDetails(startPos);
+        loc.start = {
+          offset: startPos,
+          line: startPosDetails.line,
+          column: startPosDetails.column
+        };
+    
+        const endPosDetails = peg$computePosDetails(endPos);
+        loc.end = {
+          offset: endPos,
+          line: endPosDetails.line,
+          column: endPosDetails.column
+        };
+    
+        return loc;
+      }
+      
+      function peg$begin() {
+        peg$expected.push({ pos: peg$currPos, variants: [] });
+      }
+    
+      function peg$expect(expected) {
+        const top = peg$expected[peg$expected.length - 1];
+    
+        if (peg$currPos < top.pos) { return; }
+    
+        if (peg$currPos > top.pos) {
+          top.pos = peg$currPos;
+          top.variants = [];
+        }
+    
+        top.variants.push(expected);
+      }
+        
+      function peg$end(invert) {
+        const expected = peg$expected.pop();
+        const top = peg$expected[peg$expected.length - 1];
+        let variants = expected.variants;
+    
+        if (top.pos !== expected.pos) return;
+    
+        if (invert) {
+          variants = variants.map(e =>
+            e.type === "not" ? e.expected : { type: "not", expected: e }
+          );
+        }
+    
+        Array.prototype.push.apply(top.variants, variants);
+      }
+    
+      function peg$buildSimpleError(message, location) {
+        return new peg$SyntaxError(message, null, null, location);
+      }
+        
+      function peg$buildStructuredError(expected, found, location) {
+        return new peg$SyntaxError(
+          peg$SyntaxError.buildMessage(expected, found, location),
+          expected,
+          found,
+          location
+        );
+      }
+    
+      function peg$buildError() {
+        const expected = peg$expected[0];
+        const failPos = expected.pos;
+    
+        return peg$buildStructuredError(
+          expected.variants,
+          failPos < input.length ? input.charAt(failPos) : null,
+          failPos < input.length
+            ? peg$computeLocation(failPos, failPos + 1)
+            : peg$computeLocation(failPos, failPos)
+        );
+      }
+    `
 
     if (options.optimize === "size") {
-      parts.push(indent2(generateInterpreter()))
-      parts.push("")
+      yield* generateInterpreter()
+      yield
     } else {
-      ast.rules.forEach(rule => {
-        parts.push(indent2(generateRuleFunction(rule)))
-        parts.push("")
-      })
+      for (const rule of ast.rules) {
+        yield* generateRuleFunction(rule)
+        yield
+      }
     }
 
     if (ast.initializer) {
-      parts.push(indent2(ast.initializer.code))
-      parts.push("")
+      yield ast.initializer.code
+      yield
     }
 
-    parts.push("  peg$begin();")
+    yield "  peg$begin();"
 
     if (options.optimize === "size") {
-      parts.push("  peg$result = peg$parseRule(peg$startRuleIndex);")
+      yield "  peg$result = peg$parseRule(peg$startRuleIndex);"
     } else {
-      parts.push("  peg$result = peg$startRuleFunction();")
+      yield "  peg$result = peg$startRuleFunction();"
     }
 
-    parts.push(
-      [
-        "",
-        "  if (peg$result !== peg$FAILED && peg$currPos === input.length) {",
-        "    return peg$result;",
-        "  } else {",
-        "    if (peg$result !== peg$FAILED && peg$currPos < input.length) {",
-        "      peg$expect(peg$endExpectation());",
-        "    }",
-        "",
-        "    throw peg$buildError();",
-        "  }",
-        "}",
-      ].join("\n")
-    )
-
-    return parts.join("\n")
+    yield `
+        if (peg$result !== peg$FAILED && peg$currPos === input.length) {
+          return peg$result;
+        } else {
+          if (peg$result !== peg$FAILED && peg$currPos < input.length) {
+            peg$expect(peg$endExpectation());
+          }
+      
+          throw peg$buildError();
+        }
+      }
+    `
   }
 
-  function generateWrapper(topLevelCode) {
+  function generateWrapper(topLevelCode: StringGenerator): StringGenerator {
     function generateHeaderComment() {
       let comment = `// Generated by PEG.js v${VERSION}, https://pegjs.org/`
       const header = options.header
@@ -1337,84 +1275,88 @@ export function generateJS(
 
     function generateParserObject() {
       return options.trace && use("DefaultTracer")
-        ? [
-            "{",
-            "  SyntaxError: peg$SyntaxError,",
-            "  DefaultTracer: peg$DefaultTracer,",
-            "  parse: peg$parse",
-            "}",
-          ].join("\n")
-        : ["{", "  SyntaxError: peg$SyntaxError,", "  parse: peg$parse", "}"].join("\n")
+        ? `{
+            SyntaxError: peg$SyntaxError,
+            DefaultTracer: peg$DefaultTracer,
+            parse: peg$parse
+          }`
+        : `{
+            SyntaxError: peg$SyntaxError,
+            parse: peg$parse
+          }`
     }
 
     function generateParserExports() {
       return options.trace && use("DefaultTracer")
-        ? [
-            "{",
-            "  peg$SyntaxError as SyntaxError,",
-            "  peg$DefaultTracer as DefaultTracer,",
-            "  peg$parse as parse",
-            "}",
-          ].join("\n")
-        : ["{", "  peg$SyntaxError as SyntaxError,", "  peg$parse as parse", "}"].join(
-            "\n"
-          )
+        ? `{
+            peg$SyntaxError as SyntaxError,
+            peg$DefaultTracer as DefaultTracer,
+            peg$parse as parse
+          }`
+        : `{
+            peg$SyntaxError as SyntaxError,
+            peg$parse as parse
+          }`
     }
 
     const generators = {
-      commonjs() {
-        const parts: string[] = [
-          `const { peg$SyntaxError } = require("@pegjs/runtime/SyntaxError");`,
-          `const { peg$DefaultTracer } = require("@pegjs/runtime/DefaultTracer");`,
-        ]
+      *commonjs(): StringGenerator {
+        yield `const { peg$SyntaxError } = require("@pegjs/runtime/SyntaxError");`
+        yield `const { peg$DefaultTracer } = require("@pegjs/runtime/DefaultTracer");`
         const dependencyVars = Object.keys(options.dependencies)
 
-        parts.push([generateHeaderComment(), "", '"use strict";', ""].join("\n"))
+        yield generateHeaderComment()
+        yield
+        yield '"use strict";'
+        yield
 
-        if (dependencyVars.length > 0) {
-          forEach(options.dependencies, (value, variable) => {
-            parts.push(`const ${variable} = require(${JSON.stringify(value)});`)
-          })
-          parts.push("")
+        if (dependencyVars.length) {
+          yield* map(
+            options.dependencies,
+            (value, variable) => `const ${variable} = require(${JSON.stringify(value)});`
+          )
+          yield
         }
 
-        parts.push(
-          [topLevelCode, "", `module.exports = ${generateParserObject()};`, ""].join("\n")
-        )
-
-        return parts.join("\n")
+        yield* topLevelCode
+        yield
+        yield `module.exports = ${generateParserObject()};`
+        yield
       },
 
-      es() {
-        const parts: string[] = [
-          `import { peg$SyntaxError } from "@pegjs/runtime/SyntaxError";`,
-          `import { peg$DefaultTracer } from "@pegjs/runtime/DefaultTracer";`,
-        ]
+      *es(): StringGenerator {
+        yield `import { peg$SyntaxError } from "@pegjs/runtime/SyntaxError";`
+        yield `import { peg$DefaultTracer } from "@pegjs/runtime/DefaultTracer";`
         const dependencyKeys = Object.keys(options.dependencies)
 
-        parts.push(generateHeaderComment(), "")
+        yield generateHeaderComment()
+        yield
 
-        if (dependencyKeys.length > 0) {
-          forEach(options.dependencies, (value, variable) => {
-            parts.push(`import * as ${variable} from ${JSON.stringify(value)};`)
-          })
-          parts.push("")
+        if (dependencyKeys.length) {
+          yield* map(
+            options.dependencies,
+            (value, variable) => `import * as ${variable} from ${JSON.stringify(value)};`
+          )
+          yield
         }
 
-        parts.push(
-          topLevelCode,
-          "",
-          `export ${generateParserExports()};`,
-          "",
-          `export default ${generateParserObject()};`,
-          ""
-        )
-
-        return parts.join("\n")
+        yield* topLevelCode
+        yield
+        yield `export ${generateParserExports()};`
+        yield
+        yield `export default ${generateParserObject()};`
+        yield
       },
     }
+
+    if (!(options.format in generators)) {
+      throw Error(`Unknown \`options.format\`: ${options.format}`)
+    }
+
     return generators[options.format]()
   }
 
-  ast.code = generateWrapper(generateTopLevel())
+  const value = join(generateWrapper(generateTopLevel()))
+  ast.code = value
+  // ast.code = join(generateWrapper(generateTopLevel()))
 }

@@ -134,7 +134,7 @@ export function compile(ast: Grammar, session: Session, options: ICompilerOption
     case "source": {
       if (options.prettier) {
         const prettier = require("prettier")
-        code = prettier.format(code, { parser: "babel" })
+        code = prettier.format(code, { parser: "babel", arrowParens: "avoid" })
       }
       return code
     }

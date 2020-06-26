@@ -763,7 +763,6 @@ describe("PEG.js grammar parser", function () {
       start: { offset: 13, line: 2, column: 6 },
       end: { offset: 14, line: 2, column: 7 },
     }
-    console.log(parser)
     expect(() => parser.parse(text))
       .to.throw("Unbalanced brace.")
       .with.property("location")

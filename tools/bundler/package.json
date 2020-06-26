@@ -12,6 +12,7 @@
     "@rollup/plugin-babel": "^5.0.4",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^8.1.0",
+    "babel-plugin-transform-node-env-inline": "^0.4.3",
     "dedent": "0.7.0",
     "lodash-es": "^4.17.15",
     "rollup": "^2.18.0",
