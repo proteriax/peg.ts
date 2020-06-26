@@ -1,9 +1,6 @@
-"use strict"
-
-import fs from "fs"
-import path from "path"
-import peg from "../lib/peg"
-const util = peg.util
+import * as fs from "fs"
+import * as path from "path"
+import * as peg from "../lib/peg"
 
 // Options
 
@@ -51,7 +48,7 @@ function addExtraOptions(config) {
     // We don't want to touch the orignal config, just in case it comes from
     // a javascript file, in which case its possible the same object is used
     // for something else, somewhere else.
-    config = util.clone(config)
+    config = { ...config }
     const { input, output } = config
 
     if (input !== null) {
@@ -72,7 +69,7 @@ function addExtraOptions(config) {
     }
   }
 
-  options = util.processOptions(config, options)
+  options = { ...config, ...options }
 }
 
 function formatChoicesList(list) {

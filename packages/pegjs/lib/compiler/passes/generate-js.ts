@@ -1,47 +1,53 @@
 /* eslint no-mixed-operators: 0, prefer-const: 0 */
 
-"use strict"
-
-import util from "../../util";
-import {version as VERSION} from "../../../package.json";
+import type { Grammar } from "../../ast/Grammar"
+import type { Session } from "../session"
+import type { ICompilerPassOptions } from "../mod"
+import * as util from "../../util/mod"
+import { version as VERSION } from "../../../package.json"
+import { Rule } from "../../ast/Node"
 
 // Generates parser JavaScript code.
-function generateJS(ast, session, options) {
+export function generateJS(
+  ast: Grammar,
+  session: Session,
+  options: ICompilerPassOptions
+) {
   const op = session.opcodes
 
   /* Features that should be generated in the parser. */
   const features = options.features || {}
-  function use(feature, use) {
-    return feature in features ? !!features[feature] : use == null ? true : !!use
+  function use(feature: string) {
+    return feature in features ? !!features[feature] : true
   }
 
   /* These only indent non-empty lines to avoid trailing whitespace. */
   const lineMatchRE = /^([^`\r\n]+?(?:`[^`]*?`[^\r\n]*?)?)$/gm
-  function indent2(code) {
+  function indent2(code: string) {
     return code.replace(lineMatchRE, "  $1")
   }
-  function indent10(code) {
+  function indent10(code: string) {
     return code.replace(lineMatchRE, "          $1")
   }
 
-  const l = i => `peg$c${i}` // |literals[i]| of the abstract machine
-  const r = i => `peg$r${i}` // |classes[i]| of the abstract machine
-  const e = i => `peg$e${i}` // |expectations[i]| of the abstract machine
-  const f = i => `peg$f${i}` // |actions[i]| of the abstract machine
+  const l = (i: number) => `peg$c${i}` // |literals[i]| of the abstract machine
+  const r = (i: number) => `peg$r${i}` // |classes[i]| of the abstract machine
+  const e = (i: number) => `peg$e${i}` // |expectations[i]| of the abstract machine
+  const f = (i: number) => `peg$f${i}` // |actions[i]| of the abstract machine
 
   function generateTables() {
-    function buildLiteral(literal) {
+    function buildLiteral(literal: string) {
       return `"${util.stringEscape(literal)}"`
     }
 
     function buildRegexp(cls) {
       return `/^[${cls.inverted ? "^" : ""}${cls.value
-  .map(part =>
-    Array.isArray(part)
-      ? `${util.regexpEscape(part[0])}-${util.regexpEscape(part[1])}`
-      : util.regexpEscape(part)
-  )
-  .join("")}]/${cls.ignoreCase ? "i" : ""}`;
+        .map(part =>
+          Array.isArray(part)
+            ? `${util.regexpEscape(part[0])}-${util.regexpEscape(part[1])}`
+            : util.regexpEscape(part)
+        )
+        .join("")}]/${cls.ignoreCase ? "i" : ""}`
     }
 
     function buildExpectation(e) {
@@ -50,7 +56,9 @@ function generateJS(ast, session, options) {
           return `peg$otherExpectation("${util.stringEscape(e.value)}")`
 
         case "literal":
-          return `peg$literalExpectation("${util.stringEscape(e.value)}", ${e.ignoreCase})`;
+          return `peg$literalExpectation("${util.stringEscape(e.value)}", ${
+            e.ignoreCase
+          })`
 
         case "class": {
           const parts = e.value.map(part =>
@@ -59,7 +67,9 @@ function generateJS(ast, session, options) {
               : `"${util.stringEscape(part)}"`
           )
 
-          return `peg$classExpectation([${parts.join(", ")}], ${e.inverted}, ${e.ignoreCase})`;
+          return `peg$classExpectation([${parts.join(", ")}], ${e.inverted}, ${
+            e.ignoreCase
+          })`
         }
 
         case "any":
@@ -96,7 +106,7 @@ function generateJS(ast, session, options) {
             .map(
               rule =>
                 `peg$decode("${util.stringEscape(
-                  rule.bytecode.map(b => String.fromCharCode(b + 32)).join("")
+                  rule.bytecode!.map(b => String.fromCharCode(b + 32)).join("")
                 )}")`
             )
             .join(",\n")
@@ -119,11 +129,11 @@ function generateJS(ast, session, options) {
         "",
         ast.functions.map((c, i) => `var ${f(i)} = ${buildFunc(c)};`)
       )
-      .join("\n");
+      .join("\n")
   }
 
-  function generateRuleHeader(ruleNameCode, ruleIndexCode) {
-    const parts = []
+  function generateRuleHeader(ruleNameCode: string, ruleIndexCode: string | number) {
+    const parts: string[] = []
 
     parts.push(
       [
@@ -200,7 +210,7 @@ function generateJS(ast, session, options) {
   }
 
   function generateRuleFooter(ruleNameCode, resultCode) {
-    const parts = []
+    const parts: string[] = []
 
     if (options.cache) {
       parts.push(
@@ -243,7 +253,7 @@ function generateJS(ast, session, options) {
   }
 
   function generateInterpreter() {
-    const parts = []
+    const parts: string[] = []
 
     function generateCondition(cond, argsLength) {
       const baseLength = argsLength + 3
@@ -263,7 +273,7 @@ function generateJS(ast, session, options) {
         "}",
         "",
         "break;",
-      ].join("\n");
+      ].join("\n")
     }
 
     function generateLoop(cond) {
@@ -282,7 +292,7 @@ function generateJS(ast, session, options) {
         "}",
         "",
         "break;",
-      ].join("\n");
+      ].join("\n")
     }
 
     function generateCall() {
@@ -301,7 +311,7 @@ function generateJS(ast, session, options) {
         "",
         `ip += ${baseLength} + ${paramsLengthCode};`,
         "break;",
-      ].join("\n");
+      ].join("\n")
     }
 
     parts.push(
@@ -530,7 +540,9 @@ function generateJS(ast, session, options) {
         "        // istanbul ignore next",
         "        default:",
         "          throw new Error(",
-        `            "Rule #" + index + "${options.trace ? " ('\" + peg$ruleNames[ index ] + \"')" : ""}, position " + ip + ": "`,
+        `            "Rule #" + index + "${
+          options.trace ? " ('\" + peg$ruleNames[ index ] + \"')" : ""
+        }, position " + ip + ": "`,
         '            + "Invalid opcode " + bc[ip] + "."',
         "          );",
         "      }",
@@ -552,33 +564,35 @@ function generateJS(ast, session, options) {
     return parts.join("\n")
   }
 
-  function generateRuleFunction(rule) {
-    const parts = []
-    const stackVars = []
+  function generateRuleFunction(rule: Rule) {
+    const parts: string[] = []
+    const stackVars: string[] = []
 
-    function s(i) {
+    function s(i: number) {
       // istanbul ignore next
-      if (i < 0)
+      if (i < 0) {
         session.fatal(
           `Rule '${rule.name}': Var stack underflow: attempt to use var at index ${i}`
         )
-
-      return `s${i}`;
+      }
+      return `s${i}`
     } // |stack[i]| of the abstract machine
 
     const stack = {
       sp: -1,
       maxSp: -1,
 
-      push(exprCode) {
+      push(exprCode: string) {
         const code = `${s(++this.sp)} = ${exprCode};`
         if (this.sp > this.maxSp) this.maxSp = this.sp
         return code
       },
 
-      pop(n) {
-        if (typeof n === "undefined") return s(this.sp--)
+      pop() {
+        return s(this.sp--)
+      },
 
+      pop2(n: number) {
         const values = Array(n)
 
         for (let i = 0; i < n; i++) {
@@ -593,27 +607,27 @@ function generateJS(ast, session, options) {
         return s(this.sp)
       },
 
-      index(i) {
+      index(i: number) {
         return s(this.sp - i)
       },
     }
 
-    function compile(bc) {
+    function compile(bc: number[]) {
       let ip = 0
       const end = bc.length
-      const parts = []
+      const parts: string[] = []
       let value
 
-      function compileCondition(cond, argCount) {
+      function compileCondition(cond: string, argCount: number) {
         const pos = ip
         const baseLength = argCount + 3
         const thenLength = bc[ip + baseLength - 2]
         const elseLength = bc[ip + baseLength - 1]
         const baseSp = stack.sp
-        let thenCode;
-        let elseCode;
-        let thenSp;
-        let elseSp;
+        let thenCode
+        let elseCode
+        let thenSp
+        let elseSp
 
         ip += baseLength
         thenCode = compile(bc.slice(ip, ip + thenLength))
@@ -643,13 +657,13 @@ function generateJS(ast, session, options) {
         parts.push("}")
       }
 
-      function compileLoop(cond) {
+      function compileLoop(cond: string) {
         const pos = ip
         const baseLength = 2
         const bodyLength = bc[ip + baseLength - 1]
         const baseSp = stack.sp
-        let bodyCode;
-        let bodySp;
+        let bodyCode
+        let bodySp
 
         ip += baseLength
         bodyCode = compile(bc.slice(ip, ip + bodyLength))
@@ -672,13 +686,12 @@ function generateJS(ast, session, options) {
         const baseLength = 4
         const paramsLength = bc[ip + baseLength - 1]
 
-        const value =
-          `${f(bc[ip + 1])}(${bc
-  .slice(ip + baseLength, ip + baseLength + paramsLength)
-  .map(p => stack.index(p))
-  .join(", ")})`
+        const value = `${f(bc[ip + 1])}(${bc
+          .slice(ip + baseLength, ip + baseLength + paramsLength)
+          .map(p => stack.index(p))
+          .join(", ")})`
 
-        stack.pop(bc[ip + 2])
+        stack.pop2(bc[ip + 2])
         parts.push(stack.push(value))
         ip += baseLength + paramsLength
       }
@@ -726,7 +739,7 @@ function generateJS(ast, session, options) {
             break
 
           case op.POP_N: // POP_N n
-            stack.pop(bc[ip + 1])
+            stack.pop2(bc[ip + 1])
             ip += 2
             break
 
@@ -744,7 +757,7 @@ function generateJS(ast, session, options) {
             break
 
           case op.WRAP: // WRAP n
-            parts.push(stack.push(`[${stack.pop(bc[ip + 1]).join(", ")}]`))
+            parts.push(stack.push(`[${stack.pop2(bc[ip + 1]).join(", ")}]`))
             ip += 2
             break
 
@@ -763,7 +776,7 @@ function generateJS(ast, session, options) {
               paramsLength === 1
                 ? stack.index(value[0])
                 : `[ ${value.map(p => stack.index(p)).join(", ")} ]`
-            stack.pop(bc[ip + 1])
+            stack.pop2(bc[ip + 1])
             parts.push(stack.push(value))
             ip += n
             break
@@ -782,7 +795,7 @@ function generateJS(ast, session, options) {
             break
 
           case op.WHILE_NOT_ERROR: // WHILE_NOT_ERROR b
-            compileLoop(`${stack.top()} !== peg$FAILED`, 0)
+            compileLoop(`${stack.top()} !== peg$FAILED`)
             break
 
           case op.MATCH_ANY: // MATCH_ANY a, f, ...
@@ -792,15 +805,21 @@ function generateJS(ast, session, options) {
           case op.MATCH_STRING: // MATCH_STRING s, a, f, ...
             compileCondition(
               ast.literals[bc[ip + 1]].length > 1
-                ? `input.substr(peg$currPos, ${ast.literals[bc[ip + 1]].length}) === ${l(bc[ip + 1])}`
-                : `input.charCodeAt(peg$currPos) === ${ast.literals[bc[ip + 1]].charCodeAt(0)}`,
+                ? `input.substr(peg$currPos, ${ast.literals[bc[ip + 1]].length}) === ${l(
+                    bc[ip + 1]
+                  )}`
+                : `input.charCodeAt(peg$currPos) === ${ast.literals[
+                    bc[ip + 1]
+                  ].charCodeAt(0)}`,
               1
             )
             break
 
           case op.MATCH_STRING_IC: // MATCH_STRING_IC s, a, f, ...
             compileCondition(
-              `input.substr(peg$currPos, ${ast.literals[bc[ip + 1]].length}).toLowerCase() === ${l(bc[ip + 1])}`,
+              `input.substr(peg$currPos, ${
+                ast.literals[bc[ip + 1]].length
+              }).toLowerCase() === ${l(bc[ip + 1])}`,
               1
             )
             break
@@ -888,7 +907,7 @@ function generateJS(ast, session, options) {
       return parts.join("\n")
     }
 
-    const code = compile(rule.bytecode)
+    const code = compile(rule.bytecode!)
 
     parts.push(`function peg$parse${rule.name}() {`)
 
@@ -911,9 +930,7 @@ function generateJS(ast, session, options) {
       )
     )
     parts.push(indent2(code))
-    parts.push(
-      indent2(generateRuleFooter(`"${util.stringEscape(rule.name)}"`, s(0)))
-    )
+    parts.push(indent2(generateRuleFooter(`"${util.stringEscape(rule.name)}"`, s(0))))
 
     parts.push("}")
 
@@ -921,7 +938,7 @@ function generateJS(ast, session, options) {
   }
 
   function generateToplevel() {
-    const parts = []
+    const parts: string[] = []
 
     parts.push(
       [
@@ -1130,8 +1147,9 @@ function generateJS(ast, session, options) {
     )
 
     if (options.optimize === "size") {
-      const startRuleIndices =
-        `{ ${options.allowedStartRules.map(r => `${r}: ${ast.indexOfRule(r)}`).join(", ")} }`
+      const startRuleIndices = `{ ${options.allowedStartRules
+        .map(r => `${r}: ${ast.indexOfRule(r)}`)
+        .join(", ")} }`
       const startRuleIndex = ast.indexOfRule(options.allowedStartRules[0])
 
       parts.push(
@@ -1141,8 +1159,9 @@ function generateJS(ast, session, options) {
         ].join("\n")
       )
     } else {
-      const startRuleFunctions =
-        `{ ${options.allowedStartRules.map(r => `${r}: peg$parse${r}`).join(", ")} }`
+      const startRuleFunctions = `{ ${options.allowedStartRules
+        .map(r => `${r}: peg$parse${r}`)
+        .join(", ")} }`
       const startRuleFunction = `peg$parse${options.allowedStartRules[0]}`
 
       parts.push(
@@ -1175,8 +1194,9 @@ function generateJS(ast, session, options) {
 
     if (options.trace) {
       if (options.optimize === "size") {
-        const ruleNames =
-          `[${ast.rules.map(r => `"${util.stringEscape(r.name)}"`).join(", ")}]`
+        const ruleNames = `[${ast.rules
+          .map(r => `"${util.stringEscape(r.name)}"`)
+          .join(", ")}]`
 
         parts.push([`  var peg$ruleNames = ${ruleNames};`, ""].join("\n"))
       }
@@ -1541,11 +1561,11 @@ function generateJS(ast, session, options) {
           "",
           indent2(`return ${generateParserObject()};`),
           "})()",
-        ].join("\n");
+        ].join("\n")
       },
 
       commonjs() {
-        const parts = []
+        const parts: string[] = []
         const dependencyVars = Object.keys(options.dependencies)
 
         parts.push([generateHeaderComment(), "", '"use strict";', ""].join("\n"))
@@ -1553,23 +1573,23 @@ function generateJS(ast, session, options) {
         if (dependencyVars.length > 0) {
           dependencyVars.forEach(variable => {
             parts.push(
-              `var ${variable} = require("${util.stringEscape(options.dependencies[variable])}");`
+              `var ${variable} = require("${util.stringEscape(
+                options.dependencies[variable]
+              )}");`
             )
           })
           parts.push("")
         }
 
         parts.push(
-          [toplevelCode, "", `module.exports = ${generateParserObject()};`, ""].join(
-            "\n"
-          )
+          [toplevelCode, "", `module.exports = ${generateParserObject()};`, ""].join("\n")
         )
 
         return parts.join("\n")
       },
 
       es() {
-        const parts = []
+        const parts: string[] = []
         const dependencyVars = Object.keys(options.dependencies)
 
         parts.push(generateHeaderComment(), "")
@@ -1577,7 +1597,9 @@ function generateJS(ast, session, options) {
         if (dependencyVars.length > 0) {
           dependencyVars.forEach(variable => {
             parts.push(
-              `import ${variable} from "${util.stringEscape(options.dependencies[variable])}";`
+              `import ${variable} from "${util.stringEscape(
+                options.dependencies[variable]
+              )}";`
             )
           })
           parts.push("")
@@ -1598,8 +1620,9 @@ function generateJS(ast, session, options) {
       amd() {
         const dependencyVars = Object.keys(options.dependencies)
         const dependencyIds = dependencyVars.map(v => options.dependencies[v])
-        const dependencies =
-          `[${dependencyIds.map(id => `"${util.stringEscape(id)}"`).join(", ")}]`
+        const dependencies = `[${dependencyIds
+          .map(id => `"${util.stringEscape(id)}"`)
+          .join(", ")}]`
         const params = dependencyVars.join(", ")
 
         return [
@@ -1612,7 +1635,7 @@ function generateJS(ast, session, options) {
           indent2(`return ${generateParserObject()};`),
           "});",
           "",
-        ].join("\n");
+        ].join("\n")
       },
 
       globals() {
@@ -1626,15 +1649,16 @@ function generateJS(ast, session, options) {
           indent2(`root.${options.exportVar} = ${generateParserObject()};`),
           "})(this);",
           "",
-        ].join("\n");
+        ].join("\n")
       },
 
       umd() {
-        const parts = []
+        const parts: string[] = []
         const dependencyVars = Object.keys(options.dependencies)
         const dependencyIds = dependencyVars.map(v => options.dependencies[v])
-        const dependencies =
-          `[${dependencyIds.map(id => `"${util.stringEscape(id)}"`).join(", ")}]`
+        const dependencies = `[${dependencyIds
+          .map(id => `"${util.stringEscape(id)}"`)
+          .join(", ")}]`
         const requires = dependencyIds
           .map(id => `require("${util.stringEscape(id)}")`)
           .join(", ")
@@ -1654,10 +1678,7 @@ function generateJS(ast, session, options) {
 
         if (options.exportVar !== null) {
           parts.push(
-            [
-              "  } else {",
-              `    root.${options.exportVar} = factory(${args});`,
-            ].join("\n")
+            ["  } else {", `    root.${options.exportVar} = factory(${args});`].join("\n")
           )
         }
 
@@ -1684,5 +1705,3 @@ function generateJS(ast, session, options) {
 
   ast.code = generateWrapper(generateToplevel())
 }
-
-export default generateJS;

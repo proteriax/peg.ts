@@ -1,6 +1,4 @@
-"use strict"
-
-import template from "./html";
+import template from "./html"
 
 export default ({ content, ga, layout, title } = {}) => {
   content = `
@@ -14,4 +12,4 @@ export default ({ content, ga, layout, title } = {}) => {
     `
 
   return template({ content, ga, layout, title })
-};
+}

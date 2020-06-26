@@ -64,7 +64,7 @@ object
 
 member
   = name:string name_separator value:value {
-      return { name: name, value: value };
+      return { name, value };
     }
 
 // ----- 5. Arrays -----

@@ -65,7 +65,7 @@ import
   = IMPORT_SYM S* href:(STRING / URI) S* media:media_list? ";" S* {
       return {
         type: "ImportRule",
-        href: href,
+        href,
         media: media !== null ? media : []
       };
     }
@@ -74,8 +74,8 @@ media
   = MEDIA_SYM S* media:media_list "{" S* rules:ruleset* "}" S* {
       return {
         type: "MediaRule",
-        media: media,
-        rules: rules
+        media,
+        rules
       };
     }
 
@@ -94,13 +94,13 @@ page
     {
       return {
         type: "PageRule",
-        selector: selector,
+        selector,
         declarations: buildList(declarationsHead, declarationsTail, 2)
       };
     }
 
 pseudo_page
-  = ":" value:IDENT S* { return { type: "PseudoSelector", value: value }; }
+  = ":" value:IDENT S* { return { type: "PseudoSelector", value }; }
 
 operator
   = "/" S* { return "/"; }
@@ -132,17 +132,17 @@ selector
   = left:simple_selector S* combinator:combinator right:selector {
       return {
         type: "Selector",
-        combinator: combinator,
-        left: left,
-        right: right
+        combinator,
+        left,
+        right,
       };
     }
   / left:simple_selector S+ right:selector {
       return {
         type: "Selector",
         combinator: " ",
-        left: left,
-        right: right
+        left,
+        right
       };
     }
   / selector:simple_selector S* { return selector; }
@@ -151,20 +151,20 @@ simple_selector
   = element:element_name qualifiers:(id / class / attrib / pseudo)* {
       return {
         type: "SimpleSelector",
-        element: element,
-        qualifiers: qualifiers
+        element,
+        qualifiers
       };
     }
   / qualifiers:(id / class / attrib / pseudo)+ {
       return {
         type: "SimpleSelector",
         element: "*",
-        qualifiers: qualifiers
+        qualifiers
       };
     }
 
 id
-  = id:HASH { return { type: "IDSelector", id: id }; }
+  = id:HASH { return { type: "IDSelector", id }; }
 
 class
   = "." class_:IDENT { return { type: "ClassSelector", "class": class_ }; }
@@ -181,7 +181,7 @@ attrib
     {
       return {
         type: "AttributeSelector",
-        attribute: attribute,
+        attribute,
         operator: extractOptional(operatorAndValue, 0),
         value: extractOptional(operatorAndValue, 2)
       };
@@ -193,20 +193,20 @@ pseudo
         name:FUNCTION S* params:(IDENT S*)? ")" {
           return {
             type: "Function",
-            name: name,
+            name,
             params: params !== null ? [params[0]] : []
           };
         }
       / IDENT
     )
-    { return { type: "PseudoSelector", value: value }; }
+    { return { type: "PseudoSelector", value }; }
 
 declaration
   = name:property ':' S* value:expr prio:prio? {
       return {
         type: "Declaration",
-        name: name,
-        value: value,
+        name,
+        value,
         important: prio !== null
       };
     }
@@ -227,19 +227,19 @@ term
         unit: quantity.unit
       };
     }
-  / value:STRING S* { return { type: "String", value: value }; }
-  / value:URI S*    { return { type: "URI",    value: value }; }
+  / value:STRING S* { return { type: "String", value }; }
+  / value:URI S*    { return { type: "URI",    value }; }
   / function
   / hexcolor
-  / value:IDENT S*  { return { type: "Ident",  value: value }; }
+  / value:IDENT S*  { return { type: "Ident",  value }; }
 
 function
   = name:FUNCTION S* params:expr ")" S* {
-      return { type: "Function", name: name, params: params };
+      return { type: "Function", name, params };
     }
 
 hexcolor
-  = value:HASH S* { return { type: "Hexcolor", value: value }; }
+  = value:HASH S* { return { type: "Hexcolor", value }; }
 
 // ----- G.2 Lexical scanner -----
 
@@ -378,37 +378,37 @@ IMPORTANT_SYM "!important"
   = comment* "!" (s / comment)* I M P O R T A N T
 
 EMS "length"
-  = comment* value:num E M { return { value: value, unit: "em" }; }
+  = comment* value:num E M { return { value, unit: "em" }; }
 
 EXS "length"
-  = comment* value:num E X { return { value: value, unit: "ex" }; }
+  = comment* value:num E X { return { value, unit: "ex" }; }
 
 LENGTH "length"
-  = comment* value:num P X { return { value: value, unit: "px" }; }
-  / comment* value:num C M { return { value: value, unit: "cm" }; }
-  / comment* value:num M M { return { value: value, unit: "mm" }; }
-  / comment* value:num I N { return { value: value, unit: "in" }; }
-  / comment* value:num P T { return { value: value, unit: "pt" }; }
-  / comment* value:num P C { return { value: value, unit: "pc" }; }
+  = comment* value:num P X { return { value, unit: "px" }; }
+  / comment* value:num C M { return { value, unit: "cm" }; }
+  / comment* value:num M M { return { value, unit: "mm" }; }
+  / comment* value:num I N { return { value, unit: "in" }; }
+  / comment* value:num P T { return { value, unit: "pt" }; }
+  / comment* value:num P C { return { value, unit: "pc" }; }
 
 ANGLE "angle"
-  = comment* value:num D E G   { return { value: value, unit: "deg"  }; }
-  / comment* value:num R A D   { return { value: value, unit: "rad"  }; }
-  / comment* value:num G R A D { return { value: value, unit: "grad" }; }
+  = comment* value:num D E G   { return { value, unit: "deg"  }; }
+  / comment* value:num R A D   { return { value, unit: "rad"  }; }
+  / comment* value:num G R A D { return { value, unit: "grad" }; }
 
 TIME "time"
-  = comment* value:num M S_ { return { value: value, unit: "ms" }; }
-  / comment* value:num S_   { return { value: value, unit: "s"  }; }
+  = comment* value:num M S_ { return { value, unit: "ms" }; }
+  / comment* value:num S_   { return { value, unit: "s"  }; }
 
 FREQ "frequency"
-  = comment* value:num H Z   { return { value: value, unit: "hz" }; }
-  / comment* value:num K H Z { return { value: value, unit: "kh" }; }
+  = comment* value:num H Z   { return { value, unit: "hz" }; }
+  / comment* value:num K H Z { return { value, unit: "kh" }; }
 
 PERCENTAGE "percentage"
-  = comment* value:num "%" { return { value: value, unit: "%" }; }
+  = comment* value:num "%" { return { value, unit: "%" }; }
 
 NUMBER "number"
-  = comment* value:num { return { value: value, unit: null }; }
+  = comment* value:num { return { value, unit: null }; }
 
 URI "uri"
   = comment* U R L "("i w url:string w ")" { return url; }

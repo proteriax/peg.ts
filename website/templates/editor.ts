@@ -1,7 +1,5 @@
-"use strict"
-
-import {fs, expand} from "../export.utils";
-import template from "./html";
+import { fs, expand } from "../export.utils"
+import template from "./html"
 
 export default async ({ ga, input, lib, layout, title } = {}) => {
   const EDITOR_VIEW = await fs.readFile(expand("editor.html", __dirname), "utf8")
@@ -31,7 +29,7 @@ export default async ({ ga, input, lib, layout, title } = {}) => {
     content,
     ga,
     head: `<link rel="stylesheet" href="/vendor/codemirror/codemirror.css">`,
-    layout: layout || "online",
+    layout: layout ?? "online",
     title,
   })
-};
+}

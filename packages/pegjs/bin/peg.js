@@ -1,13 +1,10 @@
-#!/usr/bin/env node
+#!/usr/bin/env node -r esm
 
-"use strict"
-
-import fs from "fs"
-import peg from "../lib/peg"
+import * as fs from "fs"
+import * as peg from "../lib/peg"
 import options from "./options"
 
 // Helpers
-
 function readStream(inputStream, callback) {
   let input = ""
   inputStream.on("data", data => {
@@ -32,7 +29,7 @@ function abort(message) {
 let inputStream
 
 let outputStream
-let orignalContent
+let originalContent
 
 const inputFile = options.inputFile
 const outputFile = options.outputFile
@@ -53,7 +50,7 @@ if (outputFile === "-") {
   outputStream = process.stdout
 } else {
   if (fs.existsSync(outputFile)) {
-    orignalContent = fs.readFileSync(outputFile, "utf8")
+    originalContent = fs.readFileSync(outputFile, "utf8")
   }
 
   outputStream = fs.createWriteStream(outputFile)
@@ -76,9 +73,9 @@ readStream(inputStream, input => {
       }
     }
 
-    if (orignalContent) {
+    if (originalContent) {
       closeStream(outputStream)
-      fs.writeFileSync(outputFile, orignalContent, "utf8")
+      fs.writeFileSync(outputFile, originalContent, "utf8")
     }
 
     return abort(e.message)

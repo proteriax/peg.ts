@@ -1,24 +1,20 @@
-"use strict"
-
-import util from "../../util";
-const __hasOwnProperty = Object.prototype.hasOwnProperty
+import type { Session } from "../session"
+import { INode } from "../../ast/Node"
 
 // Checks that each label is defined only once within each scope.
-function reportDuplicateLabels(ast, session) {
-  let check
-
-  function checkExpressionWithClonedEnv(node, env) {
-    check(node.expression, util.clone(env))
+export function reportDuplicateLabels(ast: Grammar, session: Session) {
+  function checkExpressionWithClonedEnv(node: INode & { expression: INode }, env: any) {
+    check(node.expression, { ...env })
   }
 
-  check = session.buildVisitor({
+  const check = session.buildVisitor({
     rule(node) {
       check(node.expression, {})
     },
 
     choice(node, env) {
       node.alternatives.forEach(alternative => {
-        check(alternative, util.clone(env))
+        check(alternative, { ...env })
       })
     },
 
@@ -27,7 +23,7 @@ function reportDuplicateLabels(ast, session) {
     labeled(node, env) {
       const label = node.label
 
-      if (label && __hasOwnProperty.call(env, label)) {
+      if (label && {}.hasOwnProperty.call(env, label)) {
         const start = env[label].start
 
         session.error(
@@ -52,5 +48,3 @@ function reportDuplicateLabels(ast, session) {
 
   check(ast)
 }
-
-export default reportDuplicateLabels;

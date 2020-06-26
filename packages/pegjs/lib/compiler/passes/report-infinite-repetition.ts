@@ -1,8 +1,9 @@
-"use strict"
+import type { Grammar } from "../../ast/Grammar"
+import type { Session } from "../session"
 
 // Reports expressions that don't consume any input inside |*| or |+| in the
 // grammar, which prevents infinite loops in the generated parser.
-function reportInfiniteRepetition(ast, session) {
+export function reportInfiniteRepetition(ast: Grammar, session: Session) {
   const check = session.buildVisitor({
     zero_or_more(node) {
       if (!ast.alwaysConsumesOnSuccess(node.expression)) {
@@ -25,5 +26,3 @@ function reportInfiniteRepetition(ast, session) {
 
   check(ast)
 }
-
-export default reportInfiniteRepetition;

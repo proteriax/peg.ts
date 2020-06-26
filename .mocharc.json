@@ -1,0 +1,6 @@
+{
+  "recursive": true,
+  "reporter": "mochawesome",
+  "require": ["ts-node/register"],
+  "spec": ["{packages,test}/**/*.{spec,test}.ts"]
+}

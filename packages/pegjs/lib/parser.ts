@@ -2,10 +2,8 @@
 
 /* eslint-disable */
 
-"use strict"
-
-import ast from "./ast";
-import util from "./util";
+import * as ast from "./ast/mod"
+import * as util from "./util/mod"
 
 function peg$subclass(child, parent) {
   function C() {
@@ -33,15 +31,17 @@ peg$subclass(peg$SyntaxError, Error)
 peg$SyntaxError.buildMessage = (expected, found, location) => {
   var DESCRIBE_EXPECTATION_FNS = {
     literal(expectation) {
-      return `"${literalEscape(expectation.text)}"`;
+      return `"${literalEscape(expectation.text)}"`
     },
 
     class(expectation) {
-      var escapedParts = expectation.parts.map(part => Array.isArray(part)
-        ? `${classEscape(part[0])}-${classEscape(part[1])}`
-        : classEscape(part))
+      var escapedParts = expectation.parts.map(part =>
+        Array.isArray(part)
+          ? `${classEscape(part[0])}-${classEscape(part[1])}`
+          : classEscape(part)
+      )
 
-      return `[${expectation.inverted ? "^" : ""}${escapedParts}]`;
+      return `[${expectation.inverted ? "^" : ""}${escapedParts}]`
     },
 
     any() {
@@ -57,7 +57,7 @@ peg$SyntaxError.buildMessage = (expected, found, location) => {
     },
 
     not(expectation) {
-      return `not ${describeExpectation(expectation.expected)}`;
+      return `not ${describeExpectation(expectation.expected)}`
     },
   }
 
@@ -74,7 +74,7 @@ peg$SyntaxError.buildMessage = (expected, found, location) => {
       .replace(/\n/g, "\\n")
       .replace(/\r/g, "\\r")
       .replace(/[\x00-\x0F]/g, ch => `\\x0${hex(ch)}`)
-      .replace(/[\x10-\x1F\x7F-\x9F]/g, ch => `\\x${hex(ch)}`);
+      .replace(/[\x10-\x1F\x7F-\x9F]/g, ch => `\\x${hex(ch)}`)
   }
 
   function classEscape(s) {
@@ -88,7 +88,7 @@ peg$SyntaxError.buildMessage = (expected, found, location) => {
       .replace(/\n/g, "\\n")
       .replace(/\r/g, "\\r")
       .replace(/[\x00-\x0F]/g, ch => `\\x0${hex(ch)}`)
-      .replace(/[\x10-\x1F\x7F-\x9F]/g, ch => `\\x${hex(ch)}`);
+      .replace(/[\x10-\x1F\x7F-\x9F]/g, ch => `\\x${hex(ch)}`)
   }
 
   function describeExpectation(expectation) {
@@ -97,8 +97,8 @@ peg$SyntaxError.buildMessage = (expected, found, location) => {
 
   function describeExpected(expected) {
     var descriptions = expected.map(describeExpectation)
-    var i;
-    var j;
+    var i
+    var j
 
     descriptions.sort()
 
@@ -117,18 +117,20 @@ peg$SyntaxError.buildMessage = (expected, found, location) => {
         return descriptions[0]
 
       case 2:
-        return `${descriptions[0]} or ${descriptions[1]}`;
+        return `${descriptions[0]} or ${descriptions[1]}`
 
       default:
-        return `${descriptions.slice(0, -1).join(", ")}, or ${descriptions[descriptions.length - 1]}`;
+        return `${descriptions.slice(0, -1).join(", ")}, or ${
+          descriptions[descriptions.length - 1]
+        }`
     }
   }
 
   function describeFound(found) {
-    return found ? `"${literalEscape(found)}"` : "end of input";
+    return found ? `"${literalEscape(found)}"` : "end of input"
   }
 
-  return `Expected ${describeExpected(expected)} but ${describeFound(found)} found.`;
+  return `Expected ${describeExpected(expected)} but ${describeFound(found)} found.`
 }
 
 function peg$parse(input, options) {
@@ -234,7 +236,8 @@ function peg$parse(input, options) {
   var peg$e25 = peg$otherExpectation("code block")
   var peg$e26 = peg$literalExpectation(";", false)
 
-  var peg$f0 = (initializer, rules) => new ast.Grammar(initializer, rules, comments, location())
+  var peg$f0 = (initializer, rules) =>
+    new ast.Grammar(initializer, rules, comments, location())
   var peg$f1 = code => createNode("initializer", { code })
   var peg$f2 = (name, displayName, expression) => {
     if (displayName)
@@ -299,16 +302,18 @@ function peg$parse(input, options) {
   var peg$f22 = comment => addComment(comment, true)
   var peg$f23 = comment => addComment(comment, false)
   var peg$f24 = (head, tail) => head + tail.join("")
-  var peg$f25 = (value, ignoreCase) => createNode("literal", {
-    value,
-    ignoreCase: ignoreCase !== null,
-  })
+  var peg$f25 = (value, ignoreCase) =>
+    createNode("literal", {
+      value,
+      ignoreCase: ignoreCase !== null,
+    })
   var peg$f26 = chars => chars.join("")
-  var peg$f27 = (inverted, parts, ignoreCase) => createNode("class", {
-    parts: parts.filter(part => part !== ""),
-    inverted: inverted !== null,
-    ignoreCase: ignoreCase !== null,
-  })
+  var peg$f27 = (inverted, parts, ignoreCase) =>
+    createNode("class", {
+      parts: parts.filter(part => part !== ""),
+      inverted: inverted !== null,
+      ignoreCase: ignoreCase !== null,
+    })
   var peg$f28 = (begin, end) => {
     if (begin.charCodeAt(0) > end.charCodeAt(0))
       error(`Invalid character range: ${text()}.`)
@@ -361,11 +366,11 @@ function peg$parse(input, options) {
   }
 
   function peg$literalExpectation(text, ignoreCase) {
-    return { type: "literal", text, ignoreCase };
+    return { type: "literal", text, ignoreCase }
   }
 
   function peg$classExpectation(parts, inverted, ignoreCase) {
-    return { type: "class", parts, inverted, ignoreCase };
+    return { type: "class", parts, inverted, ignoreCase }
   }
 
   function peg$anyExpectation() {
@@ -377,7 +382,7 @@ function peg$parse(input, options) {
   }
 
   function peg$otherExpectation(description) {
-    return { type: "other", description };
+    return { type: "other", description }
   }
 
   function peg$computePosDetails(pos) {
@@ -468,7 +473,9 @@ function peg$parse(input, options) {
     }
 
     if (invert) {
-      variants = variants.map(e => e.type === "not" ? e.expected : { type: "not", expected: e })
+      variants = variants.map(e =>
+        e.type === "not" ? e.expected : { type: "not", expected: e }
+      )
     }
 
     Array.prototype.push.apply(top.variants, variants)
@@ -501,13 +508,13 @@ function peg$parse(input, options) {
   }
 
   function peg$parseGrammar() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
-    var s6;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
+    var s6
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -565,9 +572,9 @@ function peg$parse(input, options) {
   }
 
   function peg$parseInitializer() {
-    var s0;
-    var s1;
-    var s2;
+    var s0
+    var s1
+    var s2
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -593,14 +600,14 @@ function peg$parse(input, options) {
   }
 
   function peg$parseRule() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
-    var s6;
-    var s7;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
+    var s6
+    var s7
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -658,14 +665,14 @@ function peg$parse(input, options) {
   }
 
   function peg$parseChoiceExpression() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
-    var s6;
-    var s7;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
+    var s6
+    var s7
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -733,11 +740,11 @@ function peg$parse(input, options) {
   }
 
   function peg$parseActionExpression() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -769,12 +776,12 @@ function peg$parse(input, options) {
   }
 
   function peg$parseSequenceExpression() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -816,11 +823,11 @@ function peg$parse(input, options) {
   }
 
   function peg$parseLabeledExpression() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -878,10 +885,10 @@ function peg$parse(input, options) {
   }
 
   function peg$parseLabelIdentifier() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
+    var s0
+    var s1
+    var s2
+    var s3
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -914,10 +921,10 @@ function peg$parse(input, options) {
   }
 
   function peg$parsePrefixedExpression() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
+    var s0
+    var s1
+    var s2
+    var s3
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -947,8 +954,8 @@ function peg$parse(input, options) {
   }
 
   function peg$parsePrefixedOperator() {
-    var s0;
-    var s1;
+    var s0
+    var s1
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1002,10 +1009,10 @@ function peg$parse(input, options) {
   }
 
   function peg$parseSuffixedExpression() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
+    var s0
+    var s1
+    var s2
+    var s3
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1035,8 +1042,8 @@ function peg$parse(input, options) {
   }
 
   function peg$parseSuffixedOperator() {
-    var s0;
-    var s1;
+    var s0
+    var s1
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1090,12 +1097,12 @@ function peg$parse(input, options) {
   }
 
   function peg$parsePrimaryExpression() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1156,14 +1163,14 @@ function peg$parse(input, options) {
   }
 
   function peg$parseRuleReferenceExpression() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
-    var s6;
-    var s7;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
+    var s6
+    var s7
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1226,10 +1233,10 @@ function peg$parse(input, options) {
   }
 
   function peg$parseSemanticPredicateExpression() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
+    var s0
+    var s1
+    var s2
+    var s3
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1256,8 +1263,8 @@ function peg$parse(input, options) {
   }
 
   function peg$parseSemanticPredicateOperator() {
-    var s0;
-    var s1;
+    var s0
+    var s1
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1465,13 +1472,13 @@ function peg$parse(input, options) {
   }
 
   function peg$parseMultiLineComment() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
-    var s6;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
+    var s6
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1571,13 +1578,13 @@ function peg$parse(input, options) {
   }
 
   function peg$parseMultiLineCommentNoLineTerminator() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
-    var s6;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
+    var s6
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1687,13 +1694,13 @@ function peg$parse(input, options) {
   }
 
   function peg$parseSingleLineComment() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
-    var s6;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
+    var s6
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1773,10 +1780,10 @@ function peg$parse(input, options) {
   }
 
   function peg$parseIdentifier() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
+    var s0
+    var s1
+    var s2
+    var s3
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1805,9 +1812,9 @@ function peg$parse(input, options) {
   }
 
   function peg$parseIdentifierStart() {
-    var s0;
-    var s1;
-    var s2;
+    var s0
+    var s1
+    var s2
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1935,9 +1942,9 @@ function peg$parse(input, options) {
   }
 
   function peg$parseLiteralMatcher() {
-    var s0;
-    var s1;
-    var s2;
+    var s0
+    var s1
+    var s2
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -1969,10 +1976,10 @@ function peg$parse(input, options) {
   }
 
   function peg$parseStringLiteral() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
+    var s0
+    var s1
+    var s2
+    var s3
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2050,9 +2057,9 @@ function peg$parse(input, options) {
   }
 
   function peg$parseDoubleStringCharacter() {
-    var s0;
-    var s1;
-    var s2;
+    var s0
+    var s1
+    var s2
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2126,9 +2133,9 @@ function peg$parse(input, options) {
   }
 
   function peg$parseSingleStringCharacter() {
-    var s0;
-    var s1;
-    var s2;
+    var s0
+    var s1
+    var s2
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2202,12 +2209,12 @@ function peg$parse(input, options) {
   }
 
   function peg$parseCharacterClassMatcher() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2285,10 +2292,10 @@ function peg$parse(input, options) {
   }
 
   function peg$parseClassCharacterRange() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
+    var s0
+    var s1
+    var s2
+    var s3
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2325,9 +2332,9 @@ function peg$parse(input, options) {
   }
 
   function peg$parseClassCharacter() {
-    var s0;
-    var s1;
-    var s2;
+    var s0
+    var s1
+    var s2
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2401,9 +2408,9 @@ function peg$parse(input, options) {
   }
 
   function peg$parseLineContinuation() {
-    var s0;
-    var s1;
-    var s2;
+    var s0
+    var s1
+    var s2
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2434,10 +2441,10 @@ function peg$parse(input, options) {
   }
 
   function peg$parseEscapeSequence() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
+    var s0
+    var s1
+    var s2
+    var s3
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2501,8 +2508,8 @@ function peg$parse(input, options) {
   }
 
   function peg$parseSingleEscapeCharacter() {
-    var s0;
-    var s1;
+    var s0
+    var s1
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2619,9 +2626,9 @@ function peg$parse(input, options) {
   }
 
   function peg$parseNonEscapeCharacter() {
-    var s0;
-    var s1;
-    var s2;
+    var s0
+    var s1
+    var s2
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2689,12 +2696,12 @@ function peg$parse(input, options) {
   }
 
   function peg$parseHexEscapeSequence() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2745,14 +2752,14 @@ function peg$parse(input, options) {
   }
 
   function peg$parseUnicodeEscapeSequence() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
-    var s6;
-    var s7;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
+    var s6
+    var s7
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2849,8 +2856,8 @@ function peg$parse(input, options) {
   }
 
   function peg$parseAnyMatcher() {
-    var s0;
-    var s1;
+    var s0
+    var s1
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2874,10 +2881,10 @@ function peg$parse(input, options) {
   }
 
   function peg$parseCodeBlock() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
+    var s0
+    var s1
+    var s2
+    var s3
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -2930,12 +2937,12 @@ function peg$parse(input, options) {
   }
 
   function peg$parseCode() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
-    var s4;
-    var s5;
+    var s0
+    var s1
+    var s2
+    var s3
+    var s4
+    var s5
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -3327,8 +3334,8 @@ function peg$parse(input, options) {
   }
 
   function peg$parse__() {
-    var s0;
-    var s1;
+    var s0
+    var s1
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -3357,8 +3364,8 @@ function peg$parse(input, options) {
   }
 
   function peg$parse_() {
-    var s0;
-    var s1;
+    var s0
+    var s1
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -3381,10 +3388,10 @@ function peg$parse(input, options) {
   }
 
   function peg$parseEOS() {
-    var s0;
-    var s1;
-    var s2;
-    var s3;
+    var s0
+    var s1
+    var s2
+    var s3
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -3439,8 +3446,8 @@ function peg$parse(input, options) {
   }
 
   function peg$parseEOF() {
-    var s0;
-    var s1;
+    var s0
+    var s1
 
     var rule$expects = expected => {
       if (peg$silentFails === 0) peg$expect(expected)
@@ -3484,8 +3491,8 @@ function peg$parse(input, options) {
     const node = new ast.Node(type, location())
     if (details === null) return node
 
-    util.extend(node, details)
-    return util.enforceFastProperties(node)
+    Object.assign(node, details)
+    return node
   }
 
   // Used by `addComment` to store comments for the Grammar AST
@@ -3523,4 +3530,4 @@ function peg$parse(input, options) {
 export default {
   SyntaxError: peg$SyntaxError,
   parse: peg$parse,
-};
+}

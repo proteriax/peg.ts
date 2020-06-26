@@ -486,7 +486,6 @@ declare namespace peg {
       compiler.ISessionVM {
     noop(): void
     convertPasses(stages: IStageMap): compiler.IPassesMap
-    processOptions(options: {}, defaults: {}): {}
   }
   const util: util
 

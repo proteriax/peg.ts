@@ -1,7 +1,13 @@
-"use strict"
+import type { Grammar } from "../../ast/Grammar"
+import type { Session } from "../session"
+import type { ICompilerPassOptions } from "../mod"
 
 // Checks that all referenced rules exist.
-function reportUndefinedRules(ast, session, options) {
+export function reportUndefinedRules(
+  ast: Grammar,
+  session: Session,
+  options: ICompilerPassOptions
+) {
   const check = session.buildVisitor({
     rule_ref(node) {
       if (!ast.findRule(node.name)) {
@@ -18,5 +24,3 @@ function reportUndefinedRules(ast, session, options) {
     }
   })
 }
-
-export default reportUndefinedRules;

@@ -1,16 +1,12 @@
-"use strict"
+import { expect } from "chai"
+import * as peg from "pegjs"
 
-import chai from "chai";
-import peg from "pegjs";
-
-const expect = chai.expect
-
-describe("plugin API", function () {
-  describe("use", function () {
+describe("plugin API", () => {
+  describe("use", () => {
     const grammar = "start = 'a'"
 
-    it("is called for each plugin", function () {
-      const pluginsUsed = [false, false, false]
+    it("is called for each plugin", () => {
+      const pluginsUsed = [false, false, false, false]
       const plugins = [
         {
           use() {
@@ -22,55 +18,53 @@ describe("plugin API", function () {
             pluginsUsed[1] = true
           },
         },
-        {
-          use() {
-            pluginsUsed[2] = true
-          },
+        () => {
+          pluginsUsed[2] = true
+        },
+        () => {
+          pluginsUsed[3] = true
         },
       ]
 
-      peg.generate(grammar, { plugins: plugins })
+      peg.generate(grammar, { plugins })
 
-      expect(pluginsUsed).to.deep.equal([true, true, true])
+      expect(pluginsUsed).to.deep.equal([true, true, true, true])
     })
 
-    it("receives configuration", function () {
-      const plugin = {
-        use(config) {
-          expect(config).to.be.an("object")
+    it("receives configuration", () => {
+      peg.generate(grammar, {
+        plugins: [
+          config => {
+            expect(config).to.be.an("object")
+            expect(config.parser).to.be.an("object")
+            expect(config.parser.parse("start = 'a'")).to.be.an("object")
 
-          expect(config.parser).to.be.an("object")
-          expect(config.parser.parse("start = 'a'")).to.be.an("object")
+            expect(config.passes).to.be.an("object")
 
-          expect(config.passes).to.be.an("object")
+            expect(config.passes.check).to.be.an("array")
+            config.passes.check.forEach(pass => {
+              expect(pass).to.be.a("function")
+            })
 
-          expect(config.passes.check).to.be.an("array")
-          config.passes.check.forEach(pass => {
-            expect(pass).to.be.a("function")
-          })
+            expect(config.passes.transform).to.be.an("array")
+            config.passes.transform.forEach(pass => {
+              expect(pass).to.be.a("function")
+            })
 
-          expect(config.passes.transform).to.be.an("array")
-          config.passes.transform.forEach(pass => {
-            expect(pass).to.be.a("function")
-          })
-
-          expect(config.passes.generate).to.be.an("array")
-          config.passes.generate.forEach(pass => {
-            expect(pass).to.be.a("function")
-          })
-        },
-      }
-
-      peg.generate(grammar, { plugins: [plugin] })
+            expect(config.passes.generate).to.be.an("array")
+            config.passes.generate.forEach(pass => {
+              expect(pass).to.be.a("function")
+            })
+          },
+        ],
+      })
     })
 
-    it("receives options", function () {
+    it("receives options", () => {
       const generateOptions = {
         plugins: [
-          {
-            use(config, options) {
-              expect(options).to.equal(generateOptions)
-            },
+          (config, options) => {
+            expect(options).to.equal(generateOptions)
           },
         ],
         foo: 42,
@@ -79,71 +73,64 @@ describe("plugin API", function () {
       peg.generate(grammar, generateOptions)
     })
 
-    it("can replace parser", function () {
-      const plugin = {
-        use(config) {
-          config.parser = peg.generate(
-            `
-
-                        start = .* {
-                            return new ast.Grammar( void 0, [{
-                                type: "rule",
-                                name: "start",
-                                expression: {
-                                    type: "literal",
-                                    value: text(),
-                                    ignoreCase: false
-                                }
-                            }] );
-                        }
-
-                    `,
-            { context: { ast: peg.ast } }
-          )
-        },
-      }
-
-      const parser = peg.generate("a", { plugins: [plugin] })
+    it("can replace parser", () => {
+      const parser = peg.generate("a", {
+        plugins: [
+          config => {
+            config.parser = peg.generate(
+              `
+              start = .* {
+                return new ast.Grammar(undefined, [{
+                  type: "rule",
+                  name: "start",
+                  expression: {
+                    type: "literal",
+                    value: text(),
+                    ignoreCase: false,
+                  }
+                }]);
+              }
+            `,
+              { context: { ast: peg.ast } }
+            )
+          },
+        ],
+      })
       expect(parser.parse("a")).to.equal("a")
     })
 
-    it("can change compiler passes", function () {
-      const plugin = {
-        use(config) {
-          function pass(ast) {
-            ast.code = "exports.parse = function() { return 42; }"
-          }
-
-          config.passes.generate = [pass]
-        },
-      }
-
-      const parser = peg.generate(grammar, { plugins: [plugin] })
+    it("can change compiler passes", () => {
+      const parser = peg.generate(grammar, {
+        plugins: [
+          config => {
+            config.passes.generate = [
+              ast => {
+                ast.code = "exports.parse = function() { return 42; }"
+              },
+            ]
+          },
+        ],
+      })
       expect(parser.parse("a")).to.equal(42)
     })
 
-    it("can change options", function () {
+    it("can change options", () => {
       const grammar = `
-
-                a = 'x'
-                b = 'x'
-                c = 'x'
-
-            `
-      const plugin = {
-        use(config, options) {
-          options.allowedStartRules = ["b", "c"]
-        },
-      }
+        a = 'x'
+        b = 'x'
+        c = 'x'
+      `
 
       const parser = peg.generate(grammar, {
         allowedStartRules: ["a"],
-        plugins: [plugin],
+        plugins: [
+          (_config, options) => {
+            options.allowedStartRules = ["b", "c"]
+          },
+        ],
       })
 
-      expect(() => {
-        parser.parse("x", { startRule: "a" })
-      }).to.throw()
+      expect(() => parser.parse("x", { startRule: "a" })).to.throw()
       expect(parser.parse("x", { startRule: "b" })).to.equal("x")
       expect(parser.parse("x", { startRule: "c" })).to.equal("x")
     })

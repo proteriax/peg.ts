@@ -1,10 +1,8 @@
-"use strict"
-
 /* eslint-env browser, jquery */
 
-import Runner from "./runner.js";
+import Runner from "./runner.js"
 
-import benchmarks from "./benchmarks.js";
+import benchmarks from "./benchmarks.js"
 
 let BRANCH = location.hash.match(/branch=([^&]*)/i)
 BRANCH = BRANCH ? BRANCH[1] : "master"

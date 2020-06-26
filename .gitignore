@@ -9,3 +9,4 @@ node_modules
 /*.log
 /sh.exe.stackdump
 /test/junit-results.xml
+mochawesome-report

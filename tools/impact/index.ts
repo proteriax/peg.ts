@@ -5,14 +5,12 @@
 
 /* eslint-disable no-mixed-operators, prefer-const */
 
-"use strict"
-
-import child_process from "child_process";
-import fs from "fs";
-import os from "os";
-import path from "path";
-import dedent from "dedent";
-import glob from "glob";
+import child_process from "child_process"
+import fs from "fs"
+import os from "os"
+import path from "path"
+import dedent from "dedent"
+import glob from "glob"
 
 // Current Working Directory
 
@@ -63,7 +61,7 @@ function runBenchmark() {
       // Trim the whitespaces and remove ` kB/s` from the end
       .trim()
       .slice(0, -5)
-  );
+  )
 }
 
 function measureSpeed() {

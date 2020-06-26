@@ -1,10 +1,16 @@
 {
-    "name": "@pegjs/spec-suite",
-    "version": "0.11.0",
-    "private": true,
-    "dependencies": {
-        "chai": "4.2.0",
-        "chai-like": "1.1.1",
-        "sinon": "7.5.0"
-    }
+  "name": "@pegjs/spec-suite",
+  "version": "0.11.0",
+  "private": true,
+  "dependencies": {
+    "@types/chai": "^4.2.11",
+    "@types/sinon": "^9.0.4",
+    "chai": "^4.2.0",
+    "chai-like": "^1.1.1",
+    "mochawesome": "^6.1.1",
+    "sinon": "^7.5.0"
+  },
+  "devDependencies": {
+    "@types/chai-like": "^1.1.0"
+  }
 }

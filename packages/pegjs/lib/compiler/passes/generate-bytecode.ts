@@ -1,237 +1,244 @@
-"use strict"
+import type { Grammar } from "../../ast/Grammar"
+import type { Session } from "../session"
+import { map } from "lodash"
+import {
+  CharacterClassMatcher,
+  SemanticPredicateExpression,
+  ParsedClass,
+} from "../../ast/Node"
+import { Expectation } from "../../ast/Expectation"
 
-import util from "../../util";
-
-// Generates bytecode.
-//
-// Instructions
-// ============
-//
-// Stack Manipulation
-// ------------------
-//
-//  [0] PUSH_EMPTY_STRING
-//
-//        stack.push("");
-//
-//  [1] PUSH_UNDEFINED
-//
-//        stack.push(undefined);
-//
-//  [2] PUSH_NULL
-//
-//        stack.push(null);
-//
-//  [3] PUSH_FAILED
-//
-//        stack.push(FAILED);
-//
-//  [4] PUSH_EMPTY_ARRAY
-//
-//        stack.push([]);
-//
-//  [5] PUSH_CURR_POS
-//
-//        stack.push(currPos);
-//
-//  [6] POP
-//
-//        stack.pop();
-//
-//  [7] POP_CURR_POS
-//
-//        currPos = stack.pop();
-//
-//  [8] POP_N n
-//
-//        stack.pop(n);
-//
-//  [9] NIP
-//
-//        value = stack.pop();
-//        stack.pop();
-//        stack.push(value);
-//
-// [10] APPEND
-//
-//        value = stack.pop();
-//        array = stack.pop();
-//        array.push(value);
-//        stack.push(array);
-//
-// [11] WRAP n
-//
-//        stack.push(stack.pop(n));
-//
-// [12] TEXT
-//
-//        stack.push(input.substring(stack.pop(), currPos));
-//
-// Conditions and Loops
-// --------------------
-//
-// [13] IF t, f
-//
-//        if (stack.top()) {
-//          interpret(ip + 3, ip + 3 + t);
-//        } else {
-//          interpret(ip + 3 + t, ip + 3 + t + f);
-//        }
-//
-// [14] IF_ERROR t, f
-//
-//        if (stack.top() === FAILED) {
-//          interpret(ip + 3, ip + 3 + t);
-//        } else {
-//          interpret(ip + 3 + t, ip + 3 + t + f);
-//        }
-//
-// [15] IF_NOT_ERROR t, f
-//
-//        if (stack.top() !== FAILED) {
-//          interpret(ip + 3, ip + 3 + t);
-//        } else {
-//          interpret(ip + 3 + t, ip + 3 + t + f);
-//        }
-//
-// [16] WHILE_NOT_ERROR b
-//
-//        while(stack.top() !== FAILED) {
-//          interpret(ip + 2, ip + 2 + b);
-//        }
-//
-// Matching
-// --------
-//
-// [17] MATCH_ANY a, f, ...
-//
-//        if (input.length > currPos) {
-//          interpret(ip + 3, ip + 3 + a);
-//        } else {
-//          interpret(ip + 3 + a, ip + 3 + a + f);
-//        }
-//
-// [18] MATCH_STRING s, a, f, ...
-//
-//        if (input.substr(currPos, literals[s].length) === literals[s]) {
-//          interpret(ip + 4, ip + 4 + a);
-//        } else {
-//          interpret(ip + 4 + a, ip + 4 + a + f);
-//        }
-//
-// [19] MATCH_STRING_IC s, a, f, ...
-//
-//        if (input.substr(currPos, literals[s].length).toLowerCase() === literals[s]) {
-//          interpret(ip + 4, ip + 4 + a);
-//        } else {
-//          interpret(ip + 4 + a, ip + 4 + a + f);
-//        }
-//
-// [20] MATCH_CLASS c, a, f, ...
-//
-//        if (classes[c].test(input.charAt(currPos))) {
-//          interpret(ip + 4, ip + 4 + a);
-//        } else {
-//          interpret(ip + 4 + a, ip + 4 + a + f);
-//        }
-//
-// [21] ACCEPT_N n
-//
-//        stack.push(input.substring(currPos, n));
-//        currPos += n;
-//
-// [22] ACCEPT_STRING s
-//
-//        stack.push(literals[s]);
-//        currPos += literals[s].length;
-//
-// [23] EXPECT e
-//
-//        expect(expectations[e]);
-//
-// Calls
-// -----
-//
-// [24] LOAD_SAVED_POS p
-//
-//        savedPos = stack[p];
-//
-// [25] UPDATE_SAVED_POS
-//
-//        savedPos = currPos;
-//
-// [26] CALL f, n, pc, p1, p2, ..., pN
-//
-//        value = functions[f](stack[p1], ..., stack[pN]);
-//        stack.pop(n);
-//        stack.push(value);
-//
-// Rules
-// -----
-//
-// [27] RULE r
-//
-//        stack.push(parseRule(r));
-//
-// Failure Reporting
-// -----------------
-//
-// [28] SILENT_FAILS_ON
-//
-//        silentFails++;
-//
-// [29] SILENT_FAILS_OFF
-//
-//        silentFails--;
-//
-// [38] EXPECT_NS_BEGIN
-//
-//        expected.push({ pos: curPos, variants: [] });
-//
-// [39] EXPECT_NS_END invert
-//
-//        value = expected.pop();
-//        if (value.pos === expected.top().pos) {
-//          if (invert) {
-//            value.variants.forEach(e => { e.not = !e.not; });
-//          }
-//          expected.top().variants.pushAll(value.variants);
-//        }
-function generateBytecode(ast, session) {
+/**
+ * Generates bytecode.
+ *
+ * Instructions
+ * ============
+ *
+ * Stack Manipulation
+ * ------------------
+ *
+ *  [0] PUSH_EMPTY_STRING
+ *
+ *        stack.push("");
+ *
+ *  [1] PUSH_UNDEFINED
+ *
+ *        stack.push(undefined);
+ *
+ *  [2] PUSH_NULL
+ *
+ *        stack.push(null);
+ *
+ *  [3] PUSH_FAILED
+ *
+ *        stack.push(FAILED);
+ *
+ *  [4] PUSH_EMPTY_ARRAY
+ *
+ *        stack.push([]);
+ *
+ *  [5] PUSH_CURR_POS
+ *
+ *        stack.push(currPos);
+ *
+ *  [6] POP
+ *
+ *        stack.pop();
+ *
+ *  [7] POP_CURR_POS
+ *
+ *        currPos = stack.pop();
+ *
+ *  [8] POP_N n
+ *
+ *        stack.pop(n);
+ *
+ *  [9] NIP
+ *
+ *        value = stack.pop();
+ *        stack.pop();
+ *        stack.push(value);
+ *
+ * [10] APPEND
+ *
+ *        value = stack.pop();
+ *        array = stack.pop();
+ *        array.push(value);
+ *        stack.push(array);
+ *
+ * [11] WRAP n
+ *
+ *        stack.push(stack.pop(n));
+ *
+ * [12] TEXT
+ *
+ *        stack.push(input.substring(stack.pop(), currPos));
+ *
+ * Conditions and Loops
+ * --------------------
+ *
+ * [13] IF t, f
+ *
+ *        if (stack.top()) {
+ *          interpret(ip + 3, ip + 3 + t);
+ *        } else {
+ *          interpret(ip + 3 + t, ip + 3 + t + f);
+ *        }
+ *
+ * [14] IF_ERROR t, f
+ *
+ *        if (stack.top() === FAILED) {
+ *          interpret(ip + 3, ip + 3 + t);
+ *        } else {
+ *          interpret(ip + 3 + t, ip + 3 + t + f);
+ *        }
+ *
+ * [15] IF_NOT_ERROR t, f
+ *
+ *        if (stack.top() !== FAILED) {
+ *          interpret(ip + 3, ip + 3 + t);
+ *        } else {
+ *          interpret(ip + 3 + t, ip + 3 + t + f);
+ *        }
+ *
+ * [16] WHILE_NOT_ERROR b
+ *
+ *        while(stack.top() !== FAILED) {
+ *          interpret(ip + 2, ip + 2 + b);
+ *        }
+ *
+ * Matching
+ * --------
+ *
+ * [17] MATCH_ANY a, f, ...
+ *
+ *        if (input.length > currPos) {
+ *          interpret(ip + 3, ip + 3 + a);
+ *        } else {
+ *          interpret(ip + 3 + a, ip + 3 + a + f);
+ *        }
+ *
+ * [18] MATCH_STRING s, a, f, ...
+ *
+ *        if (input.substr(currPos, literals[s].length) === literals[s]) {
+ *          interpret(ip + 4, ip + 4 + a);
+ *        } else {
+ *          interpret(ip + 4 + a, ip + 4 + a + f);
+ *        }
+ *
+ * [19] MATCH_STRING_IC s, a, f, ...
+ *
+ *        if (input.substr(currPos, literals[s].length).toLowerCase() === literals[s]) {
+ *          interpret(ip + 4, ip + 4 + a);
+ *        } else {
+ *          interpret(ip + 4 + a, ip + 4 + a + f);
+ *        }
+ *
+ * [20] MATCH_CLASS c, a, f, ...
+ *
+ *        if (classes[c].test(input.charAt(currPos))) {
+ *          interpret(ip + 4, ip + 4 + a);
+ *        } else {
+ *          interpret(ip + 4 + a, ip + 4 + a + f);
+ *        }
+ *
+ * [21] ACCEPT_N n
+ *
+ *        stack.push(input.substring(currPos, n));
+ *        currPos += n;
+ *
+ * [22] ACCEPT_STRING s
+ *
+ *        stack.push(literals[s]);
+ *        currPos += literals[s].length;
+ *
+ * [23] EXPECT e
+ *
+ *        expect(expectations[e]);
+ *
+ * Calls
+ * -----
+ *
+ * [24] LOAD_SAVED_POS p
+ *
+ *        savedPos = stack[p];
+ *
+ * [25] UPDATE_SAVED_POS
+ *
+ *        savedPos = currPos;
+ *
+ * [26] CALL f, n, pc, p1, p2, ..., pN
+ *
+ *        value = functions[f](stack[p1], ..., stack[pN]);
+ *        stack.pop(n);
+ *        stack.push(value);
+ *
+ * Rules
+ * -----
+ *
+ * [27] RULE r
+ *
+ *        stack.push(parseRule(r));
+ *
+ * Failure Reporting
+ * -----------------
+ *
+ * [28] SILENT_FAILS_ON
+ *
+ *        silentFails++;
+ *
+ * [29] SILENT_FAILS_OFF
+ *
+ *        silentFails--;
+ *
+ * [38] EXPECT_NS_BEGIN
+ *
+ *        expected.push({ pos: curPos, variants: [] });
+ *
+ * [39] EXPECT_NS_END invert
+ *
+ *        value = expected.pop();
+ *        if (value.pos === expected.top().pos) {
+ *          if (invert) {
+ *            value.variants.forEach(e => { e.not = !e.not; });
+ *          }
+ *          expected.top().variants.pushAll(value.variants);
+ *        }
+ */
+export function generateBytecode(ast: Grammar, session: Session) {
   const op = session.opcodes
 
-  const literals = []
-  const classes = []
-  const expectations = []
+  const literals: string[] = []
+  const classes: ParsedClass[] = []
+  const expectations: Expectation[] = []
   const functions = []
-  let generate
 
-  function addLiteralConst(value) {
+  function addLiteralConst(value: string) {
     const index = literals.indexOf(value)
     return index === -1 ? literals.push(value) - 1 : index
   }
 
-  function addClassConst(node) {
+  function addClassConst(node: CharacterClassMatcher) {
     const cls = {
       value: node.parts,
       inverted: node.inverted,
       ignoreCase: node.ignoreCase,
     }
     const pattern = JSON.stringify(cls)
-    const index = util.findIndex(classes, c => JSON.stringify(c) === pattern)
+    const index = classes.findIndex(c => JSON.stringify(c) === pattern)
     return index === -1 ? classes.push(cls) - 1 : index
   }
 
-  function addExpectedConst(expected) {
+  function addExpectedConst(expected: Expectation) {
     const pattern = JSON.stringify(expected)
-    const index = util.findIndex(expectations, e => JSON.stringify(e) === pattern)
+    const index = expectations.findIndex(e => JSON.stringify(e) === pattern)
     return index === -1 ? expectations.push(expected) - 1 : index
   }
 
   function addFunctionConst(predicate, params, code) {
     const func = { predicate, params, body: code }
     const pattern = JSON.stringify(func)
-    const index = util.findIndex(functions, f => JSON.stringify(f) === pattern)
+    const index = functions.findIndex(f => JSON.stringify(f) === pattern)
     return index === -1 ? functions.push(func) - 1 : index
   }
 
@@ -249,7 +256,7 @@ function generateBytecode(ast, session) {
   }
 
   function buildCall(functionIndex, delta, env, sp) {
-    const params = util.values(env, value => sp - value)
+    const params = map(env, value => sp - value)
     return [op.CALL, functionIndex, delta, params.length].concat(params)
   }
 
@@ -260,7 +267,7 @@ function generateBytecode(ast, session) {
       [op.EXPECT_NS_BEGIN],
       generate(expression, {
         sp: context.sp + 1,
-        env: util.clone(context.env),
+        env: { ...context.env },
         action: null,
         reportFailures: context.reportFailures,
       }),
@@ -278,7 +285,11 @@ function generateBytecode(ast, session) {
     )
   }
 
-  function buildSemanticPredicate(node, negative, context) {
+  function buildSemanticPredicate(
+    node: SemanticPredicateExpression,
+    negative: boolean,
+    context: { env: {}; sp: any }
+  ) {
     const functionIndex = addFunctionConst(true, Object.keys(context.env), node.code)
 
     return buildSequence(
@@ -297,7 +308,7 @@ function generateBytecode(ast, session) {
     return buildLoop([op.WHILE_NOT_ERROR], buildSequence([op.APPEND], expressionCode))
   }
 
-  generate = session.buildVisitor({
+  const generate = session.buildVisitor({
     grammar(node) {
       node.rules.forEach(generate)
       node.literals = literals
@@ -340,7 +351,7 @@ function generateBytecode(ast, session) {
         return buildSequence(
           generate(alternatives[0], {
             sp: context.sp,
-            env: util.clone(context.env),
+            env: { ...context.env },
             action: null,
             reportFailures: context.reportFailures,
           }),
@@ -363,7 +374,7 @@ function generateBytecode(ast, session) {
     },
 
     action(node, context) {
-      const env = util.clone(context.env)
+      const env = { ...context.env }
       const emitCall =
         node.expression.type !== "sequence" || node.expression.elements.length === 0
       const expressionCode = generate(node.expression, {
@@ -473,7 +484,7 @@ function generateBytecode(ast, session) {
       const sp = context.sp + 1
 
       if (label !== null) {
-        env = util.clone(context.env)
+        env = { ...context.env }
         context.env[label] = sp
       }
 
@@ -484,7 +495,7 @@ function generateBytecode(ast, session) {
         env,
         action: null,
         reportFailures: context.reportFailures,
-      });
+      })
     },
 
     text(node, context) {
@@ -492,7 +503,7 @@ function generateBytecode(ast, session) {
         [op.PUSH_CURR_POS],
         generate(node.expression, {
           sp: context.sp + 1,
-          env: util.clone(context.env),
+          env: { ...context.env },
           action: null,
           reportFailures: context.reportFailures,
         }),
@@ -517,7 +528,7 @@ function generateBytecode(ast, session) {
       return buildSequence(
         generate(node.expression, {
           sp: context.sp,
-          env: util.clone(context.env),
+          env: { ...context.env },
           action: null,
           reportFailures: context.reportFailures,
         }),
@@ -534,7 +545,7 @@ function generateBytecode(ast, session) {
     zero_or_more(node, context) {
       const expressionCode = generate(node.expression, {
         sp: context.sp + 1,
-        env: util.clone(context.env),
+        env: { ...context.env },
         action: null,
         reportFailures: context.reportFailures,
       })
@@ -550,7 +561,7 @@ function generateBytecode(ast, session) {
     one_or_more(node, context) {
       const expressionCode = generate(node.expression, {
         sp: context.sp + 1,
-        env: util.clone(context.env),
+        env: { ...context.env },
         action: null,
         reportFailures: context.reportFailures,
       })
@@ -570,7 +581,7 @@ function generateBytecode(ast, session) {
     group(node, context) {
       return generate(node.expression, {
         sp: context.sp,
-        env: util.clone(context.env),
+        env: { ...context.env },
         action: null,
         reportFailures: context.reportFailures,
       })
@@ -595,6 +606,7 @@ function generateBytecode(ast, session) {
         const stringIndex = needConst
           ? addLiteralConst(node.ignoreCase ? node.value.toLowerCase() : node.value)
           : null
+
         // Do not generate unused constant, if no need it
         const expectedIndex = context.reportFailures
           ? addExpectedConst({
@@ -664,5 +676,3 @@ function generateBytecode(ast, session) {
 
   generate(ast)
 }
-
-export default generateBytecode;

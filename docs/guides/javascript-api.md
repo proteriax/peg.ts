@@ -4,10 +4,7 @@ In Node.js, require the PEG.js module:
 
 ```js
 // ES2015+ Module System
-import peg from "pegjs";
-
-// CommonJS
-var peg = require("pegjs");
+import * as peg from "pegjs"
 ```
 
 In browsers, include the PEG.js library in your web page or application using the `<script>` tag. If PEG.js detects an AMD loader, it will define itself as a module, otherwise the API will be available in the `peg` global object.
@@ -15,19 +12,19 @@ In browsers, include the PEG.js library in your web page or application using th
 After this there are 3 methods and 1 class that you will mainly use:
 
 ```js
-var grammar = "start = ('a' / 'b')+";
+const grammar = "start = ('a' / 'b')+"
 
 // Parse grammar, generating AST
-var ast = peg.parser.parse(grammar);
+const ast = peg.parser.parse(grammar)
 
 // Create a new compiler session
-var session = new peg.compiler.Session( { warn: customLogger } );
+const session = new peg.compiler.Session({ warn: customLogger })
 
-// Generate parser from PEG.js AST using an exisiting session 
-var parserA = peg.compiler.compile(ast, session);
+// Generate parser from PEG.js AST using an existing session
+const parserA = peg.compiler.compile(ast, session)
 
 // Generate parser from the grammar source using a new session
-var parserB = peg.generate(grammar);
+const parserB = peg.generate(grammar)
 ```
 
 The most common method you will use is `peg.generate()`, which is the API alternative to the [PEG.js CLI](./generating-a-parser.md). More about each method is explained below, along with their respective options.
@@ -37,21 +34,21 @@ The most common method you will use is `peg.generate()`, which is the API altern
 You can simply parse a grammar and get it's AST by using the parser:
 
 ```js
-var ast = peg.parser.parse("start = ('a' / 'b')+");
+const ast = peg.parser.parse("start = ('a' / 'b')+")
 ```
 
 The following option's are used by the PEG.js parser:
 
-  * `extractComments` - If `true`, the parser will collect all comments in the grammar (default: `false`).
-  * `reservedWords` - An array of words that the parser wont allow as labels for rules (default: [ES5](http://es5.github.io/#x7.6.1)).
+- `extractComments` - If `true`, the parser will collect all comments in the grammar (default: `false`).
+- `reservedWords` - An array of words that the parser wont allow as labels for rules (default: [ES5](http://es5.github.io/#x7.6.1)).
 
 When `extractComments` is set to `true`, the parser will collect all comments in the grammar and return them on the `comments` property (as an object map) on the `grammar` AST node (the AST directly returned by the parser). Each comment property has it's offset as the property key, while the property value has the following structure:
 
 ```js
-{
-  text: 'all text between /* or */, or // and end of line',
-  multiline: true|false,
-  location: location()
+return {
+  text: "all text between /* or */, or // and end of line",
+  multiline: true | false,
+  location: location(),
 }
 ```
 
@@ -67,47 +64,47 @@ An instance of this class holds helpers (methods, objects with methods, constant
 
 The following option's are used by the Session API, but are currently all optional:
 
-  * `opcodes` - An `enum` like hashmap (plain object) that is used by the bytecode and parser generators.
-  * `parser` - A pre-generated PEG.js grammar parser that should return an instance of the PEG.js AST's Grammar class. Can be replaced to add additional syntax features, or allow an alternative syntax for the grammar.
-  * `passes` - An object with each property being an array of methods that will check or alter the AST passed to them.
-  * `visitor` - An object that should contain the `ASTVisitor` class for the PEG.js AST, as well as the `build()` helper.
-  * `vm` - An object that should contain `evalModule()`, a wrapper for `eval` based on Node's `vm.runInContext()` method.
-  * `warn` - A method called only when PEG.js encounters an error that doesn't stop the parser from being generated.
-  * `error` - A method that will be called when PEG.js encounters an error that will stop the parser from being generated.
+- `opcodes` - An `enum` like hashmap (plain object) that is used by the bytecode and parser generators.
+- `parser` - A pre-generated PEG.js grammar parser that should return an instance of the PEG.js AST's Grammar class. Can be replaced to add additional syntax features, or allow an alternative syntax for the grammar.
+- `passes` - An object with each property being an array of methods that will check or alter the AST passed to them.
+- `visitor` - An object that should contain the `ASTVisitor` class for the PEG.js AST, as well as the `build()` helper.
+- `vm` - An object that should contain `evalModule()`, a wrapper for `eval` based on Node's `vm.runInContext()` method.
+- `warn` - A method called only when PEG.js encounters an error that doesn't stop the parser from being generated.
+- `error` - A method that will be called when PEG.js encounters an error that will stop the parser from being generated.
 
 This class will also return some helper methods:
 
-  * `parse( input, options )` - an alias for `this.parser.parse( input, options )`
-  * `buildVisitor( functions )` - an alias for `this.visitor.build( functions )`
-  * `fatal( message, location )` - Will always throw an error (used by default for `this.error()` if not overridden).
+- `parse(input: string, options)` - an alias for `this.parser.parse( input, options )`
+- `buildVisitor(functions)` - an alias for `this.visitor.build( functions )`
+- `fatal(message: string, location: SourceLocation)` - Will always throw an error (used by default for `this.error()` if not overridden).
 
 #### peg.compiler.compile(ast, session[, options])
 
 This method takes a parsed grammar (the PEG.js AST), sets default options, executes each pass currently within the session (passing the _ast_, _session_ and _options_ arguments to each one), then returns the result, which depends on the value of the `output` option.
 
 ```js
-var grammar = "start = ('a' / 'b')+";
-var ast = peg.parser.parse(grammar);
-var passes = peg.util.convertPasses( peg.compiler.passes );
-var session = new peg.compiler.Session( { passes } );
-var parser = peg.compiler.compile(ast, session);
+const grammar = "start = ('a' / 'b')+"
+const ast = peg.parser.parse(grammar)
+const passes = peg.util.convertPasses(peg.compiler.passes)
+const session = new peg.compiler.Session({ passes })
+const parser = peg.compiler.compile(ast, session)
 ```
 
 You can tweak the generated parser by passing a third parameter with an options object. The following options are supported:
 
-Option | default value | description
---- | --- | ---
-allowedStartRules | first rule | rules the generated parser is allowed to start parsing from
-cache | `false` | makes the generated parser cache results, avoiding exponential parsing time in pathological cases but making the parser slower
-context | `{}` | contains a map of variables used by `peg.util.vm.evalModule()` when the `output` option is set to `"parser"`
-dependencies<sub>1</sub> | `{}` | parser dependencies, the value is an object which maps variables used to access the dependencies to module IDs used to load them
-exportVar<sub>2</sub> | `null` | name of an optional global variable into which the generated parser object is assigned to when no module loader is detected
-features | `null` | map of optional features that are set to `true` by default: `"text"`, `"offset"`, `"range"`, `"location"`, `"expected"`, `"error"`, `"filename"` and `"DefaultTracer"`
-format<sub>3</sub> | `"bare"` | format of the generated parser (`"amd"`, `"bare"`, `"commonjs"`, `"es"`, `"globals"`, or `"umd"`)
-header | `null` | adds additional comments or content after the `Generated by ...` comment; this option is only handled if it's an array or a string:
-optimize | `"speed"` | selects between optimizing the generated parser for parsing speed (`"speed"`) or code size (`"size"`)
-output | `"parser"` | if set to `"parser"`, the method will return generated parser object; if set to `"source"`, it will return generated parser source code as a string
-trace | `false` | makes the generated parser trace its progress
+| Option                   | default value | description                                                                                                                                                            |
+| ------------------------ | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| allowedStartRules        | first rule    | rules the generated parser is allowed to start parsing from                                                                                                            |
+| cache                    | `false`       | makes the generated parser cache results, avoiding exponential parsing time in pathological cases but making the parser slower                                         |
+| context                  | `{}`          | contains a map of variables used by `peg.util.vm.evalModule()` when the `output` option is set to `"parser"`                                                           |
+| dependencies<sub>1</sub> | `{}`          | parser dependencies, the value is an object which maps variables used to access the dependencies to module IDs used to load them                                       |
+| exportVar<sub>2</sub>    | `null`        | name of an optional global variable into which the generated parser object is assigned to when no module loader is detected                                            |
+| features                 | `null`        | map of optional features that are set to `true` by default: `"text"`, `"offset"`, `"range"`, `"location"`, `"expected"`, `"error"`, `"filename"` and `"DefaultTracer"` |
+| format<sub>3</sub>       | `"bare"`      | format of the generated parser (`"amd"`, `"bare"`, `"commonjs"`, `"es"`, `"globals"`, or `"umd"`)                                                                      |
+| header                   | `null`        | adds additional comments or content after the `Generated by ...` comment; this option is only handled if it's an array or a string:                                    |
+| optimize                 | `"speed"`     | selects between optimizing the generated parser for parsing speed (`"speed"`) or code size (`"size"`)                                                                  |
+| output                   | `"parser"`    | if set to `"parser"`, the method will return generated parser object; if set to `"source"`, it will return generated parser source code as a string                    |
+| trace                    | `false`       | makes the generated parser trace its progress                                                                                                                          |
 
 1. The `dependencies` option is only used when `format` is set to `"amd"`, `"commonjs"`, `"es"`, or `"umd"`
 2. The `exportVar` option is only used when `format` is set to `"globals"` or `"umd"`
@@ -115,21 +112,21 @@ trace | `false` | makes the generated parser trace its progress
 
 The `header` options behavior will change depending on the option type:
 
-  * `[ string1, string2, ... ]` will add each element (all expected to be strings) as a separate line comment
-  * `string` will simply append the string (e.g. `"/* eslint-disable */"`) after the `Generated by ...` comment
+- `[ string1, string2, ... ]` will add each element (all expected to be strings) as a separate line comment
+- `string` will simply append the string (e.g. `"/* eslint-disable */"`) after the `Generated by ...` comment
 
 #### peg.generate(grammar[, options])
 
 Will generate a parser from the given grammar (the _input_ passed to `peg.parser.parse()`):
 
 ```js
-var parser = peg.generate("start = ('a' / 'b')+");
+const parser = peg.generate("start = ('a' / 'b')+")
 ```
 
 This method will return a generated parser object or its source code as a string (depending on the value of the `output` option - see above). It will throw an exception if the grammar is invalid. The exception will contain the usual `message` property with more details about the error, along with a `location` property to track the location of the error. You can easily tell if the exception was thrown by PEG.js because it will always have the `name` property set to `GrammarError`.
 
 You can tweak the generated parser by passing a second parameter with an options object to `peg.generate()`. The following options are supported:
 
-  * All options that you pass to `peg.compiler.compile()`
-  * `parser` - an optional object with option's passed to the PEG.js parser (`peg.parser.parse()`)
-  * `plugins` - plugins to use _(their `use()` method is executed by `peg.generate()`)_
+- All options that you pass to `peg.compiler.compile()`
+- `parser` - an optional object with option's passed to the PEG.js parser (`peg.parser.parse()`)
+- `plugins` - plugins to use _(their `use()` method is executed by `peg.generate()`)_

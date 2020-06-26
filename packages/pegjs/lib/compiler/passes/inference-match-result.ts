@@ -1,29 +1,27 @@
-"use strict"
+import type { Grammar } from "../../ast/Grammar"
+import type { Session } from "../session"
 
 // Inference match result of the rule. Can be:
 //   -1: negative result, always fails
 //    0: neutral result, may be fail, may be match
 //    1: positive result, always match
-function inferenceMatchResult(ast, session) {
-  let inference
+export function inferenceMatchResult(ast: Grammar, session: Session) {
   function sometimesMatch(node) {
     node.match = 0
-
     return node.match
   }
+
   function alwaysMatch(node) {
     inference(node.expression)
-
     node.match = 1
-
     return node.match
   }
 
   function inferenceExpression(node) {
     node.match = inference(node.expression)
-
     return node.match
   }
+
   function inferenceElements(elements, forChoice) {
     const length = elements.length
     let always = 0
@@ -50,9 +48,9 @@ function inferenceMatchResult(ast, session) {
     return never > 0 ? -1 : 0
   }
 
-  inference = session.buildVisitor({
+  const inference = session.buildVisitor({
     rule(node) {
-      let oldResult
+      let oldResult: number | undefined
       let count = 0
 
       if (typeof node.match === "undefined") {
@@ -78,13 +76,11 @@ function inferenceMatchResult(ast, session) {
     named: inferenceExpression,
     choice(node) {
       node.match = inferenceElements(node.alternatives, true)
-
       return node.match
     },
     action: inferenceExpression,
     sequence(node) {
       node.match = inferenceElements(node.elements, false)
-
       return node.match
     },
     labeled: inferenceExpression,
@@ -92,7 +88,6 @@ function inferenceMatchResult(ast, session) {
     simple_and: inferenceExpression,
     simple_not(node) {
       node.match = -inference(node.expression)
-
       return node.match
     },
     optional: alwaysMatch,
@@ -110,13 +105,11 @@ function inferenceMatchResult(ast, session) {
     literal(node) {
       // Empty literal always match on any input
       node.match = node.value.length === 0 ? 1 : 0
-
       return node.match
     },
     class(node) {
       // Empty character class never match on any input
       node.match = node.parts.length === 0 ? -1 : 0
-
       return node.match
     },
     // |any| not match on empty input
@@ -125,5 +118,3 @@ function inferenceMatchResult(ast, session) {
 
   inference(ast)
 }
-
-export default inferenceMatchResult;

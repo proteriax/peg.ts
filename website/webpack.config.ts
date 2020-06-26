@@ -1,3 +1,1 @@
-"use strict"
-
-export default require("./export.utils").Bundler.load();
+export default require("./export.utils").Bundler.load()

@@ -1,64 +1,49 @@
-"use strict";
+import "./useHelpers"
+import { expect } from "chai"
+import { compiler } from "pegjs"
 
-import chai from "chai";
-import helpers from "./helpers";
-const pass = require( "pegjs" ).compiler.passes.check.reportUnusedRules;
+const pass = compiler.passes.check.reportUnusedRules
 
-chai.use( helpers );
+describe("compiler pass |reportUnusedRules|", () => {
+  it("should report rules that are not referenced", () => {
+    expect(pass).to.reportWarning(
+      `
+          start = .
+          unused = .
+      `,
+      `Rule "unused" is not referenced.`
+    )
 
-const expect = chai.expect;
+    expect(pass).to.reportWarning(
+      `
+          start = .
+          unused = .
+          used = .
+      `,
+      [`Rule "used" is not referenced.`, `Rule "unused" is not referenced.`]
+    )
+  })
 
-describe( "compiler pass |reportUnusedRules|", function () {
+  it("does not report rules that are referenced", () => {
+    expect(pass).not.to.reportWarning(`start = .`)
 
-    it( "should report rules that are not referenced", function () {
+    expect(pass).not.to.reportWarning(`
+      start = used
+      used = .
+    `)
+  })
 
-        expect( pass ).to.reportWarning(
-            `
-                start = .
-                unused = .
-            `,
-            `Rule "unused" is not referenced.`,
-        );
-
-        expect( pass ).to.reportWarning(
-            `
-                start = .
-                unused = .
-                used = .
-            `,
-            [
-                `Rule "used" is not referenced.`,
-                `Rule "unused" is not referenced.`,
-            ],
-        );
-
-    } );
-
-    it( "does not report rules that are referenced", function () {
-
-        expect( pass ).not.to.reportWarning( `start = .` );
-
-        expect( pass ).not.to.reportWarning( `
-            start = used
-            used = .
-        ` );
-
-    } );
-
-    it( "does not report any rules that the generated parser starts parsing from", function () {
-
-        expect( pass ).not.to.reportWarning(
-            `
-                a = "x"
-                b = a
-                c = .+
-            `,
-            null,
-            {
-                allowedStartRules: [ "b", "c" ],
-            },
-        );
-
-    } );
-
-} );
+  it("does not report any rules that the generated parser starts parsing from", () => {
+    expect(pass).not.to.reportWarning(
+      `
+        a = "x"
+        b = a
+        c = .+
+      `,
+      [],
+      {
+        allowedStartRules: ["b", "c"],
+      }
+    )
+  })
+})

@@ -1,8 +1,6 @@
-"use strict"
-
-import Runner from "./runner.js";
-import benchmarks from "./benchmarks.js";
-import fs from "fs";
+import Runner from "./runner.js"
+import benchmarks from "./benchmarks.js"
+import fs from "fs"
 
 // Results Table Manipulation
 
@@ -52,7 +50,10 @@ function writeResult(title, inputSize, parseTime) {
   const MS_IN_S = 1000
 
   console.log(
-    `│ ${padRight(title, 35)} │ ${padLeft((inputSize / KB).toFixed(2), 6)} kB │ ${padLeft(parseTime.toFixed(2), 7)} ms │ ${padLeft((inputSize / KB / (parseTime / MS_IN_S)).toFixed(2), 7)} kB/s │`
+    `│ ${padRight(title, 35)} │ ${padLeft((inputSize / KB).toFixed(2), 6)} kB │ ${padLeft(
+      parseTime.toFixed(2),
+      7
+    )} ms │ ${padLeft((inputSize / KB / (parseTime / MS_IN_S)).toFixed(2), 7)} kB/s │`
   )
 }
 

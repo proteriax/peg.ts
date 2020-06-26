@@ -1,12 +1,10 @@
-"use strict"
-
-import bodyParser from "body-parser";
-import bundle from "@pegjs/bundle-generator";
-import express from "express";
-import layout from "express-layout";
-import logger from "morgan";
-import {readFileSync} from "fs";
-import {join} from "path";
+import bodyParser from "body-parser"
+import bundle from "@pegjs/bundle-generator"
+import express from "express"
+import layout from "express-layout"
+import logger from "morgan"
+import { readFileSync } from "fs"
+import { join } from "path"
 
 const path = (...parts) => join(__dirname, "..", ...parts)
 
@@ -96,7 +94,6 @@ app.get("/development/benchmark", (req, res) => {
 })
 
 /* Bundle local sources (and watch for changes on non-production NODE_ENV) */
-
 ;[
   { name: "benchmark", input: "tools/benchmark/browser.js" },
   { name: "peg", input: "packages/pegjs/lib/peg.js", format: "umd" },

@@ -1,73 +1,39 @@
-import util from "../util"
+import { noop } from "lodash"
+import { INode } from "./Node"
+import * as n from "./Node"
+import type { Grammar } from "./Grammar"
+
+export interface Initializer extends INode {
+  type: "initializer"
+  code: string
+}
 
 // Abstract syntax tree visitor for PEG.js
-class ASTVisitor {
+export class ASTVisitor<U> implements IVisitorMap<U> {
+  constructor(visitors: Partial<ASTVisitor<U>>) {
+    Object.assign(this, visitors)
+    this.visit = this.visit.bind(this)
+  }
+
   // Will traverse the node, strictly assuming the visitor can handle the node type.
-  visit(node) {
+  visit(node: INode, ..._args: any[]) {
     // istanbul ignore next
-    if (!node)
+    if (!node) {
       throw new Error("Visitor function called with no arguments or a `falsy` node")
+    }
 
     const fn = this[node.type]
 
     // istanbul ignore next
-    if (!fn) throw new Error(`Visitor function for node type "${node.type}" not defined`)
+    if (!fn) {
+      console.log(this)
+      throw new Error(`Visitor function for node type "${node.type}" not defined`)
+    }
 
     return fn.apply(this, arguments) // eslint-disable-line prefer-rest-params
   }
-}
 
-export default {
-  ASTVisitor,
-
-  // Simple AST node visitor builder for PEG.js
-  build(functions) {
-    let visitor = new ASTVisitor()
-    util.extend(visitor, functions)
-    visitor = util.enforceFastProperties(visitor)
-    return visitor.visit.bind(visitor)
-  },
-}
-
-// Helper's to create visitor's for use with the ASTVisitor class
-const on = (ASTVisitor.on = {
-  // Visit a node that is defined as a property on another node
-  property(name) {
-    return function visitProperty(node, ...extraArgs) {
-      const value = node[name]
-
-      if (extraArgs.length) this.visit(value, ...extraArgs)
-      else this.visit(value)
-    }
-  },
-
-  // Visit an array of nodes that are defined as a property on another node
-  children(name) {
-    return function visitProperty(node, ...extraArgs) {
-      const children = node[name]
-      const visitor = this
-
-      const cb =
-        extraArgs.length < 1
-          ? function withoutArgs(child) {
-              visitor.visit(child)
-            }
-          : function withArgs(child) {
-              visitor.visit(child, ...extraArgs)
-            }
-
-      children.forEach(cb)
-    }
-  },
-})
-
-// Build the default ast visitor functions
-
-const visitNop = util.noop
-const visitExpression = on.property("expression")
-
-const DEFAULT_FUNCTIONS = {
-  grammar(node, ...extraArgs) {
+  grammar(node: Grammar, ...extraArgs: any[]): any {
     if (node.initializer) {
       this.visit(node.initializer, ...extraArgs)
     }
@@ -75,14 +41,22 @@ const DEFAULT_FUNCTIONS = {
     node.rules.forEach(rule => {
       this.visit(rule, ...extraArgs)
     })
-  },
+  }
 
-  initializer: visitNop,
+  choice(node: n.ChoiceExpression, ...extraArgs: any[]): any {
+    node.alternatives.forEach(child => this.visit(child, ...extraArgs))
+  }
+
+  sequence(node: n.SequenceExpression, ...extraArgs: any[]): any {
+    node.elements.forEach(child => this.visit(child, ...extraArgs))
+  }
+}
+
+Object.assign(ASTVisitor.prototype, {
+  initializer: noop as any,
   rule: visitExpression,
   named: visitExpression,
-  choice: on.children("alternatives"),
   action: visitExpression,
-  sequence: on.children("elements"),
   labeled: visitExpression,
   text: visitExpression,
   simple_and: visitExpression,
@@ -91,14 +65,58 @@ const DEFAULT_FUNCTIONS = {
   zero_or_more: visitExpression,
   one_or_more: visitExpression,
   group: visitExpression,
-  semantic_and: visitNop,
-  semantic_not: visitNop,
-  rule_ref: visitNop,
-  literal: visitNop,
-  class: visitNop,
-  any: visitNop,
+  semantic_and: noop as any,
+  semantic_not: noop as any,
+  rule_ref: noop as any,
+  literal: noop as any,
+  class: noop as any,
+  any: noop as any,
+})
+
+// Simple AST node visitor builder for PEG.js
+export function build<T = void, R = any>(functions: IVisitorMap<T>): IVisitor<R> {
+  return new ASTVisitor(functions).visit as todo
 }
 
-util.each(DEFAULT_FUNCTIONS, (fn, name) => {
-  ASTVisitor.prototype[name] = fn
-})
+export interface IVisitor<R = any> {
+  (node: INode, ...args): R
+}
+
+export interface IVisitorBuilder<T = void, R = any> {
+  (functions: IVisitorMap<T>): IVisitor<R>
+}
+
+// Build the default ast visitor functions
+
+function visitExpression(
+  this: ASTVisitor<any>,
+  node: INode & { expression: INode },
+  ...extraArgs: any[]
+): any {
+  this.visit(node.expression, ...extraArgs)
+}
+
+export interface IVisitorMap<T = void> {
+  [key: string]: any
+  grammar?(node: Grammar, ...args: any[]): T
+  initializer?(node: Initializer, ...args: any[]): T
+  rule?(node: n.Rule, ...args: any[]): T
+  named?(node: n.Named, ...args: any[]): T
+  choice?(node: n.ChoiceExpression, ...args: any[]): T
+  action?(node: n.ActionExpression, ...args: any[]): T
+  sequence?(node: n.SequenceExpression, ...args: any[]): T
+  labeled?(node: n.LabeledExpression, ...args: any[]): T
+  text?(node: n.PrefixedExpression, ...args: any[]): T
+  simple_and?(node: n.PrefixedExpression, ...args: any[]): T
+  simple_not?(node: n.PrefixedExpression, ...args: any[]): T
+  optional?(node: n.SuffixedExpression, ...args: any[]): T
+  zero_or_more?(node: n.SuffixedExpression, ...args: any[]): T
+  one_or_more?(node: n.SuffixedExpression, ...args: any[]): T
+  literal?(node: n.LiteralMatcher, ...args: any[]): T
+  class?(node: n.CharacterClassMatcher, ...args: any[]): T
+  any?(node: n.AnyMatcher, ...args: any[]): T
+  rule_ref?(node: n.RuleReferenceExpression, ...args: any[]): T
+  semantic_and?(node: n.SemanticPredicateExpression, ...args: any[]): T
+  semantic_not?(node: n.SemanticPredicateExpression, ...args: any[]): T
+  group?(node: n.GroupExpression, ...args: any[]): T
+}

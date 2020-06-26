@@ -1,11 +1,9 @@
-"use strict"
-
-function hex(ch) {
+function hex(ch: string) {
   return ch.charCodeAt(0).toString(16).toUpperCase()
 }
 
 /* eslint-disable no-control-regex */
-function sourceEscape(s) {
+function sourceEscape(s: string) {
   return s
     .replace(/\0/g, "\\0") // null
     .replace(/\x08/g, "\\b") // backspace
@@ -21,95 +19,90 @@ function sourceEscape(s) {
 }
 /* eslint-enable no-control-regex */
 
-// JavaScript code generation helpers.
-const js = {
-  /**
-   * ECMA-262, 5th ed., 7.8.4: All characters may appear literally in a string
-   * literal except for the closing quote character, backslash, carriage
-   * return, line separator, paragraph separator, and line feed. Any character
-   * may appear in the form of an escape sequence.
-   *
-   * For portability, we also escape all control and non-ASCII characters.
-   */
-  stringEscape(s) {
-    return sourceEscape(
-      s
-        .replace(/\\/g, "\\\\") // backslash
-        .replace(/"/g, '\\"') // closing double quote
-    )
-  },
-
-  /**
-   * Based on ECMA-262, 5th ed., 7.8.5 & 15.10.1.
-   *
-   * For portability, we also escape all control and non-ASCII characters.
-   */
-  regexpEscape(s) {
-    return sourceEscape(
-      s
-        .replace(/\\/g, "\\\\") // backslash
-        .replace(/\//g, "\\/") // closing slash
-        .replace(/]/g, "\\]") // closing bracket
-        .replace(/\^/g, "\\^") // caret
-        .replace(/-/g, "\\-") // dash
-    )
-  },
-
-  /**
-   * This is a list of reserved words for ECMA-262, 5th ed., 7.6.1 (strict mode)
-   */
-  reservedWords: [
-    // Keyword
-    "break",
-    "case",
-    "catch",
-    "continue",
-    "debugger",
-    "default",
-    "delete",
-    "do",
-    "else",
-    "finally",
-    "for",
-    "function",
-    "if",
-    "in",
-    "instanceof",
-    "new",
-    "return",
-    "switch",
-    "this",
-    "throw",
-    "try",
-    "typeof",
-    "var",
-    "void",
-    "while",
-    "with",
-
-    // FutureReservedWord
-    "class",
-    "const",
-    "enum",
-    "export",
-    "extends",
-    "implements",
-    "import",
-    "interface",
-    "let",
-    "package",
-    "private",
-    "protected",
-    "public",
-    "static",
-    "super",
-    "yield",
-
-    // Literal
-    "false",
-    "null",
-    "true",
-  ],
+/**
+ * ECMA-262, 5th ed., 7.8.4: All characters may appear literally in a string
+ * literal except for the closing quote character, backslash, carriage
+ * return, line separator, paragraph separator, and line feed. Any character
+ * may appear in the form of an escape sequence.
+ *
+ * For portability, we also escape all control and non-ASCII characters.
+ */
+export function stringEscape(s: string) {
+  return sourceEscape(
+    s
+      .replace(/\\/g, "\\\\") // backslash
+      .replace(/"/g, '\\"') // closing double quote
+  )
 }
 
-export default js;
+/**
+ * Based on ECMA-262, 5th ed., 7.8.5 & 15.10.1.
+ *
+ * For portability, we also escape all control and non-ASCII characters.
+ */
+export function regexpEscape(s: string) {
+  return sourceEscape(
+    s
+      .replace(/\\/g, "\\\\") // backslash
+      .replace(/\//g, "\\/") // closing slash
+      .replace(/]/g, "\\]") // closing bracket
+      .replace(/\^/g, "\\^") // caret
+      .replace(/-/g, "\\-") // dash
+  )
+}
+
+/**
+ * This is a list of reserved words for ECMA-262, 5th ed., 7.6.1 (strict mode)
+ */
+export const reservedWords = [
+  // Keyword
+  "break",
+  "case",
+  "catch",
+  "continue",
+  "debugger",
+  "default",
+  "delete",
+  "do",
+  "else",
+  "finally",
+  "for",
+  "function",
+  "if",
+  "in",
+  "instanceof",
+  "new",
+  "return",
+  "switch",
+  "this",
+  "throw",
+  "try",
+  "typeof",
+  "var",
+  "void",
+  "while",
+  "with",
+
+  // FutureReservedWord
+  "class",
+  "const",
+  "enum",
+  "export",
+  "extends",
+  "implements",
+  "import",
+  "interface",
+  "let",
+  "package",
+  "private",
+  "protected",
+  "public",
+  "static",
+  "super",
+  "yield",
+
+  // Literal
+  "false",
+  "null",
+  "true",
+]

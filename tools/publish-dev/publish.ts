@@ -1,8 +1,6 @@
-"use strict"
-
-import cp from "child_process";
-import fs from "fs";
-import path from "path";
+import cp from "child_process"
+import fs from "fs"
+import path from "path"
 
 function publish(id) {
   // paths
@@ -61,4 +59,4 @@ function publish(id) {
   fs.unlinkSync(npmrc)
 }
 
-export default publish;
+export default publish

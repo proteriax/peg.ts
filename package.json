@@ -8,11 +8,11 @@
     "website"
   ],
   "scripts": {
-    "lint": "eslint --ext .js .",
+    "lint": "eslint --ext .ts .",
     "spec": "mocha --reporter progress",
     "benchmark": "node tools/benchmark",
     "build-parser": "pegjs -c src/pegjs.config.js",
-    "build-dist": "bundle",
+    "build-dist": "rollup -c ./tools/bundler/rollup.config.js",
     "build-website": "node website/export",
     "clean": "rimraf public packages/pegjs/dist examples/*.js",
     "impact": "node tools/impact master",
@@ -21,13 +21,13 @@
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
   "dependencies": {
-    "@futagoza/eslint-config": "11.2.0",
-    "@types/node": "8",
-    "codecov": "3.6.1",
-    "eslint": "6.6.0",
-    "mocha": "6.2.2",
-    "nyc": "14.1.1",
-    "rimraf": "3.0.0"
+    "@futagoza/eslint-config": "13.1.0",
+    "@types/node": "14",
+    "codecov": "3.7.0",
+    "eslint": "7.3.1",
+    "mocha": "^8.0.1",
+    "nyc": "15.1.0",
+    "rimraf": "3.0.2"
   },
   "engines": {
     "node": ">= 12.0"
@@ -41,6 +41,8 @@
     "trailingComma": "es5"
   },
   "devDependencies": {
+    "@types/mocha": "^7.0.2",
+    "avec-ts": "^1.0.1",
     "babel-eslint": "^10.1.0",
     "esm": "^3.2.25",
     "lebab": "^3.1.0",

@@ -2,7 +2,6 @@
 
 You can use plugins by simply passing them to the generate method (e.g. [`peg.generate(grammar, { plugins: [plugin1, plugin2, etc] })`](./javascript-api.md#peggenerategrammar-options)).
 
-
 #### Creating a Plugin
 
 Plugins are expected to be an object that contains at least one method: `use( session, options )`
@@ -12,17 +11,16 @@ Plugins are expected to be an object that contains at least one method: `use( se
 
 Here is a simple example:
 
-```js
-import customGrammarParser from "./parser";
+```ts
+import { Session } from "pegjs"
+import customGrammarParser from "./parser"
 
-export function use( session, options ) {
+export function use(session: Session, options) {
+  // Replace the grammar parser
+  session.parser = customGrammarParser
 
-    // Replace the grammar parser
-    session.parser = customGrammarParser;
-
-    // always output the source
-    options.output = "source";
-
+  // always output the source
+  options.output = "source"
 }
 ```
 

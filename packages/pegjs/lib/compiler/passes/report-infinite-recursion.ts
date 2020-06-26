@@ -1,4 +1,5 @@
-"use strict"
+import type { Grammar } from "../../ast/Grammar"
+import type { Session } from "../session"
 
 // Reports left recursion in the grammar, which prevents infinite recursion in
 // the generated parser.
@@ -10,20 +11,19 @@
 //
 // In general, if a rule reference can be reached without consuming any input,
 // it can lead to left recursion.
-function reportInfiniteRecursion(ast, session) {
-  const visitedRules = []
+export function reportInfiniteRecursion(ast: Grammar, session: Session) {
+  const visitedRules: string[] = []
 
   const check = session.buildVisitor({
     rule(node) {
       visitedRules.push(node.name)
       check(node.expression)
-      visitedRules.pop(node.name)
+      visitedRules.pop()
     },
 
     sequence(node) {
       node.elements.every(element => {
         check(element)
-
         return !ast.alwaysConsumesOnSuccess(element)
       })
     },
@@ -39,11 +39,9 @@ function reportInfiniteRecursion(ast, session) {
         )
       }
 
-      check(ast.findRule(node.name))
+      check(ast.findRule(node.name)!)
     },
   })
 
   check(ast)
 }
-
-export default reportInfiniteRecursion;

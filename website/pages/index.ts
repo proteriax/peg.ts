@@ -1,5 +1,3 @@
-"use strict"
-
 import template from "../templates/article"
 
 export default template({

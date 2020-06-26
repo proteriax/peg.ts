@@ -1,16 +1,13 @@
-"use strict"
+import type { SourceLocation } from "../typings/generated-parser"
 
-// Thrown when the grammar contains an error.
-class GrammarError {
-  constructor(message, location) {
+/**
+ * Thrown when the grammar contains an error.
+ */
+export class GrammarError {
+  name: string
+
+  constructor(readonly message: string, readonly location?: SourceLocation) {
     this.name = "GrammarError"
-    this.message = message
-    this.location = location
-
-    if (typeof Error.captureStackTrace === "function") {
-      Error.captureStackTrace(this, GrammarError)
-    }
+    Error.captureStackTrace?.(this, GrammarError)
   }
 }
-
-export default GrammarError;

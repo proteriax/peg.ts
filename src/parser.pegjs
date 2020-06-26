@@ -42,8 +42,8 @@
       const node = new ast.Node(type, location());
       if (details === null) return node;
 
-      util.extend(node, details);
-      return util.enforceFastProperties(node);
+      Object.assign(node, details);
+      return node;
     }
 
     // Used by `addComment` to store comments for the Grammar AST
@@ -81,7 +81,7 @@ Rule
         if (displayName) {
             expression = createNode("named", {
                 name: displayName,
-                expression: expression,
+                expression,
             });
         }
 
@@ -303,7 +303,7 @@ LiteralMatcher "literal"
   = value:StringLiteral ignoreCase:"i"? {
 
         return createNode( "literal", {
-            value: value,
+            value,
             ignoreCase: ignoreCase !== null,
         } );
 

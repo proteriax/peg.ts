@@ -1,5 +1,3 @@
-"use strict"
-
 export default `
 Usage: pegjs [options] [<input_file>] [--]
 

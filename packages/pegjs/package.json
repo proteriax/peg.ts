@@ -1,27 +1,33 @@
 {
-    "name": "pegjs",
-    "version": "0.11.0",
-    "description": "Parser generator for JavaScript",
-    "keywords": [
-        "PEG.js",
-        "pegjs",
-        "grammar",
-        "parser",
-        "generator",
-        "language",
-        "PEG"
-    ],
-    "homepage": "https://pegjs.org/",
-    "repository": "pegjs/pegjs",
-    "license": "MIT",
-    "contributors": [
-        "David Majda <david@majda.cz> (https://majda.cz/)",
-        "Futago-za Ryuu <futagoza.ryuu@gmail.com>"
-    ],
-    "types": "typings/pegjs.d.ts",
-    "main": "lib/peg.js",
-    "bin": "bin/peg.js",
-    "engines": {
-        "node": ">= 8"
-    }
+  "name": "pegjs",
+  "version": "0.11.0",
+  "description": "Parser generator for JavaScript",
+  "keywords": [
+    "PEG.js",
+    "pegjs",
+    "grammar",
+    "parser",
+    "generator",
+    "language",
+    "PEG"
+  ],
+  "dependencies": {
+    "esm": "3.2.25",
+    "lodash": "^4.17.15"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.157"
+  },
+  "homepage": "https://pegjs.org/",
+  "repository": "pegjs/pegjs",
+  "license": "MIT",
+  "contributors": [
+    "David Majda <david@majda.cz> (https://majda.cz/)",
+    "Futago-za Ryuu <futagoza.ryuu@gmail.com>"
+  ],
+  "main": "lib/mod.ts",
+  "bin": "bin/peg.cjs.js",
+  "engines": {
+    "node": ">= 8"
+  }
 }

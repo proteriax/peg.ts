@@ -1,44 +1,87 @@
-"use strict"
+import { API, SourceLocation, IOptions } from "../../typings/generated-parser"
+import type { IVisitorMap, IVisitor } from "../ast/visitor"
+import { Grammar } from "../ast/Grammar"
+import { GrammarError } from "../grammar-error"
+import { ICompilerPassOptions } from "./mod"
+import * as visitor from "../ast/visitor"
+import { opcodes } from "./opcodes"
+import parser from "../parser"
+import * as vm from "../util/vm"
 
-import ast from "../ast";
-import GrammarError from "../grammar-error";
-import opcodes from "./opcodes";
-import parser from "../parser";
-import vm from "../util/vm";
-
-function fatal(message, location) {
-  if (typeof location !== "undefined") throw new GrammarError(message, location)
+function fatal(message: string, location?: SourceLocation) {
+  if (location != null) {
+    throw new GrammarError(message, location)
+  }
 
   throw new Error(message)
 }
 
-class Session {
-  constructor(config = {}) {
-    this.opcodes = config.opcodes || opcodes
-    this.parser = config.parser || parser
-    this.passes = config.passes || {}
-    this.visitor = config.visitor || ast.visitor
-    this.vm = config.vm || vm
+export type ICompilerPass = (
+  node: Grammar,
+  session: Session,
+  options: ICompilerPassOptions
+) => void
+
+type Enum = {
+  [name: string]: number
+} & {
+  [name: number]: string
+}
+
+export interface IPassesMap {
+  [type: string]: ICompilerPass[]
+}
+
+interface ISessionVM {
+  evalModule(code: string, context?: { [name: string]: any }): any
+}
+
+interface ISessionMessageEmitter {
+  (message: string, location: SourceLocation): any
+}
+
+interface ISessionConfig {
+  [key: string]: any
+  opcodes?: Enum
+  parser?: API<Grammar>
+  passes?: IPassesMap
+  visitor?: typeof visitor
+  vm?: ISessionVM
+  warn?: ISessionMessageEmitter
+  error?: ISessionMessageEmitter
+}
+
+export interface ParserOptions extends IOptions {
+  extractComments?: boolean
+  reservedWords?: string[]
+}
+
+export interface Session extends Required<ISessionConfig> {}
+
+export class Session implements ISessionConfig {
+  fatal = fatal
+  constructor(config: ISessionConfig = {}) {
+    this.opcodes = config.opcodes ?? opcodes
+    this.parser = config.parser ?? (parser as todo)
+    this.passes = config.passes ?? {}
+    this.visitor = config.visitor ?? visitor
+    this.vm = config.vm ?? vm
 
     if (typeof config.warn === "function") this.warn = config.warn
     if (typeof config.error === "function") this.error = config.error
-
-    Object.defineProperty(this, "fatal", { value: fatal })
   }
 
-  parse(input, options) {
+  parse(input: string, options?: ParserOptions) {
     return this.parser.parse(input, options)
   }
 
-  buildVisitor(functions) {
+  buildVisitor<T = void>(functions: IVisitorMap<T>): IVisitor<T> {
     return this.visitor.build(functions)
   }
 
-  warn(_message, _location) {}
+  warn(_message: string, _location?: SourceLocation) {}
 
-  error(message, location) {
+  error(message: string, location?: SourceLocation) {
     fatal(message, location)
   }
 }
-
-export default Session;

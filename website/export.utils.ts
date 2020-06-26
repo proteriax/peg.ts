@@ -1,11 +1,9 @@
-"use strict"
-
-import bluebird from "bluebird";
-import BundlerTarget from "@pegjs/bundler/target";
-import cp from "@futagoza/child-process";
-import fse from "fs-extra-plus";
-import isSourceNewer from "@tache/is-source-newer";
-import path from "path";
+import bluebird from "bluebird"
+import BundlerTarget from "@pegjs/bundler/target"
+import cp from "@futagoza/child-process"
+import fse from "fs-extra-plus"
+import isSourceNewer from "@tache/is-source-newer"
+import path from "path"
 
 /**
  * This flag can be used to:
@@ -161,4 +159,4 @@ export default {
   Bundler,
   expand,
   refresh,
-};
+}

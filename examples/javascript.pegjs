@@ -339,7 +339,7 @@ RegularExpressionLiteral "regular expression"
         error(e.message);
       }
 
-      return { type: "Literal", value: value };
+      return { type: "Literal", value };
     }
 
 RegularExpressionBody
@@ -511,7 +511,7 @@ ArrayLiteral
   / "[" __ elements:ElementList __ "]" {
       return {
         type: "ArrayExpression",
-        elements: elements
+        elements
       };
     }
   / "[" __ elements:ElementList __ "," __ elision:(Elision __)? "]" {
@@ -540,10 +540,10 @@ Elision
 ObjectLiteral
   = "{" __ "}" { return { type: "ObjectExpression", properties: [] }; }
   / "{" __ properties:PropertyNameAndValueList __ "}" {
-       return { type: "ObjectExpression", properties: properties };
+       return { type: "ObjectExpression", properties };
      }
   / "{" __ properties:PropertyNameAndValueList __ "," __ "}" {
-       return { type: "ObjectExpression", properties: properties };
+       return { type: "ObjectExpression", properties };
      }
 PropertyNameAndValueList
   = head:PropertyAssignment tail:(__ "," __ PropertyAssignment)* {
@@ -552,7 +552,7 @@ PropertyNameAndValueList
 
 PropertyAssignment
   = key:PropertyName __ ":" __ value:AssignmentExpression {
-      return { type: "Property", key: key, value: value, kind: "init" };
+      return { type: "Property", key, value, kind: "init" };
     }
   / GetToken __ key:PropertyName __
     "(" __ ")" __
@@ -560,12 +560,12 @@ PropertyAssignment
     {
       return {
         type: "Property",
-        key: key,
+        key,
         value: {
           type: "FunctionExpression",
           id: null,
           params: [],
-          body: body
+          body
         },
         kind: "get"
       };
@@ -576,12 +576,12 @@ PropertyAssignment
     {
       return {
         type: "Property",
-        key: key,
+        key,
         value: {
           type: "FunctionExpression",
           id: null,
-          params: params,
-          body: body
+          params,
+          body
         },
         kind: "set"
       };
@@ -600,15 +600,15 @@ MemberExpression
         PrimaryExpression
       / FunctionExpression
       / NewToken __ callee:MemberExpression __ args:Arguments {
-          return { type: "NewExpression", callee: callee, arguments: args };
+          return { type: "NewExpression", callee, arguments: args };
         }
     )
     tail:(
         __ "[" __ property:Expression __ "]" {
-          return { property: property, computed: true };
+          return { property, computed: true };
         }
       / __ "." __ property:IdentifierName {
-          return { property: property, computed: false };
+          return { property, computed: false };
         }
     )*
     {
@@ -625,13 +625,13 @@ MemberExpression
 NewExpression
   = MemberExpression
   / NewToken __ callee:NewExpression {
-      return { type: "NewExpression", callee: callee, arguments: [] };
+      return { type: "NewExpression", callee, arguments: [] };
     }
 
 CallExpression
   = head:(
       callee:MemberExpression __ args:Arguments {
-        return { type: "CallExpression", callee: callee, arguments: args };
+        return { type: "CallExpression", callee, arguments: args };
       }
     )
     tail:(
@@ -641,14 +641,14 @@ CallExpression
       / __ "[" __ property:Expression __ "]" {
           return {
             type: "MemberExpression",
-            property: property,
+            property,
             computed: true
           };
         }
       / __ "." __ property:IdentifierName {
           return {
             type: "MemberExpression",
-            property: property,
+            property,
             computed: false
           };
         }
@@ -679,8 +679,8 @@ PostfixExpression
   = argument:LeftHandSideExpression _ operator:PostfixOperator {
       return {
         type: "UpdateExpression",
-        operator: operator,
-        argument: argument,
+        operator,
+        argument,
         prefix: false
       };
     }
@@ -698,9 +698,9 @@ UnaryExpression
         : "UnaryExpression";
 
       return {
-        type: type,
-        operator: operator,
-        argument: argument,
+        type,
+        operator,
+        argument,
         prefix: true
       };
     }
@@ -858,9 +858,9 @@ ConditionalExpression
     {
       return {
         type: "ConditionalExpression",
-        test: test,
-        consequent: consequent,
-        alternate: alternate
+        test,
+        consequent,
+        alternate
       };
     }
   / LogicalORExpression
@@ -872,9 +872,9 @@ ConditionalExpressionNoIn
     {
       return {
         type: "ConditionalExpression",
-        test: test,
-        consequent: consequent,
-        alternate: alternate
+        test,
+        consequent,
+        alternate
       };
     }
   / LogicalORExpressionNoIn
@@ -887,8 +887,8 @@ AssignmentExpression
       return {
         type: "AssignmentExpression",
         operator: "=",
-        left: left,
-        right: right
+        left,
+        right
       };
     }
   / left:LeftHandSideExpression __
@@ -897,9 +897,9 @@ AssignmentExpression
     {
       return {
         type: "AssignmentExpression",
-        operator: operator,
-        left: left,
-        right: right
+        operator,
+        left,
+        right
       };
     }
   / ConditionalExpression
@@ -912,8 +912,8 @@ AssignmentExpressionNoIn
       return {
         type: "AssignmentExpression",
         operator: "=",
-        left: left,
-        right: right
+        left,
+        right
       };
     }
   / left:LeftHandSideExpression __
@@ -922,9 +922,9 @@ AssignmentExpressionNoIn
     {
       return {
         type: "AssignmentExpression",
-        operator: operator,
-        left: left,
-        right: right
+        operator,
+        left,
+        right
       };
     }
   / ConditionalExpressionNoIn
@@ -990,7 +990,7 @@ VariableStatement
   = VarToken __ declarations:VariableDeclarationList EOS {
       return {
         type: "VariableDeclaration",
-        declarations: declarations,
+        declarations,
         kind: "var"
       };
     }
@@ -1009,7 +1009,7 @@ VariableDeclaration
   = id:Identifier init:(__ Initialiser)? {
       return {
         type: "VariableDeclarator",
-        id: id,
+        id,
         init: extractOptional(init, 1)
       };
     }
@@ -1018,7 +1018,7 @@ VariableDeclarationNoIn
   = id:Identifier init:(__ InitialiserNoIn)? {
       return {
         type: "VariableDeclarator",
-        id: id,
+        id,
         init: extractOptional(init, 1)
       };
     }
@@ -1036,7 +1036,7 @@ ExpressionStatement
   = !("{" / FunctionToken) expression:Expression EOS {
       return {
         type: "ExpressionStatement",
-        expression: expression
+        expression
       };
     }
 
@@ -1048,17 +1048,17 @@ IfStatement
     {
       return {
         type: "IfStatement",
-        test: test,
-        consequent: consequent,
-        alternate: alternate
+        test,
+        consequent,
+        alternate
       };
     }
   / IfToken __ "(" __ test:Expression __ ")" __
     consequent:Statement {
       return {
         type: "IfStatement",
-        test: test,
-        consequent: consequent,
+        test,
+        consequent,
         alternate: null
       };
     }
@@ -1067,10 +1067,10 @@ IterationStatement
   = DoToken __
     body:Statement __
     WhileToken __ "(" __ test:Expression __ ")" EOS
-    { return { type: "DoWhileStatement", body: body, test: test }; }
+    { return { type: "DoWhileStatement", body, test }; }
   / WhileToken __ "(" __ test:Expression __ ")" __
     body:Statement
-    { return { type: "WhileStatement", test: test, body: body }; }
+    { return { type: "WhileStatement", test, body }; }
   / ForToken __
     "(" __
     init:(ExpressionNoIn __)? ";" __
@@ -1084,7 +1084,7 @@ IterationStatement
         init: extractOptional(init, 0),
         test: extractOptional(test, 0),
         update: extractOptional(update, 0),
-        body: body
+        body
       };
     }
   / ForToken __
@@ -1099,12 +1099,12 @@ IterationStatement
         type: "ForStatement",
         init: {
           type: "VariableDeclaration",
-          declarations: declarations,
+          declarations,
           kind: "var"
         },
         test: extractOptional(test, 0),
         update: extractOptional(update, 0),
-        body: body
+        body
       };
     }
   / ForToken __
@@ -1117,9 +1117,9 @@ IterationStatement
     {
       return {
         type: "ForInStatement",
-        left: left,
-        right: right,
-        body: body
+        left,
+        right,
+        body
       };
     }
   / ForToken __
@@ -1134,11 +1134,11 @@ IterationStatement
         type: "ForInStatement",
         left: {
           type: "VariableDeclaration",
-          declarations: declarations,
+          declarations,
           kind: "var"
         },
-        right: right,
-        body: body
+        right,
+        body
       };
     }
 
@@ -1147,7 +1147,7 @@ ContinueStatement
       return { type: "ContinueStatement", label: null };
     }
   / ContinueToken _ label:Identifier EOS {
-      return { type: "ContinueStatement", label: label };
+      return { type: "ContinueStatement", label };
     }
 
 BreakStatement
@@ -1155,7 +1155,7 @@ BreakStatement
       return { type: "BreakStatement", label: null };
     }
   / BreakToken _ label:Identifier EOS {
-      return { type: "BreakStatement", label: label };
+      return { type: "BreakStatement", label };
     }
 
 ReturnStatement
@@ -1163,13 +1163,13 @@ ReturnStatement
       return { type: "ReturnStatement", argument: null };
     }
   / ReturnToken _ argument:Expression EOS {
-      return { type: "ReturnStatement", argument: argument };
+      return { type: "ReturnStatement", argument };
     }
 
 WithStatement
   = WithToken __ "(" __ object:Expression __ ")" __
     body:Statement
-    { return { type: "WithStatement", object: object, body: body }; }
+    { return { type: "WithStatement", object, body }; }
 
 SwitchStatement
   = SwitchToken __ "(" __ discriminant:Expression __ ")" __
@@ -1177,8 +1177,8 @@ SwitchStatement
     {
       return {
         type: "SwitchStatement",
-        discriminant: discriminant,
-        cases: cases
+        discriminant,
+        cases
       };
     }
 
@@ -1203,7 +1203,7 @@ CaseClause
   = CaseToken __ test:Expression __ ":" consequent:(__ StatementList)? {
       return {
         type: "SwitchCase",
-        test: test,
+        test,
         consequent: optionalList(extractOptional(consequent, 1))
       };
     }
@@ -1219,37 +1219,37 @@ DefaultClause
 
 LabelledStatement
   = label:Identifier __ ":" __ body:Statement {
-      return { type: "LabeledStatement", label: label, body: body };
+      return { type: "LabeledStatement", label, body };
     }
 
 ThrowStatement
   = ThrowToken _ argument:Expression EOS {
-      return { type: "ThrowStatement", argument: argument };
+      return { type: "ThrowStatement", argument };
     }
 
 TryStatement
   = TryToken __ block:Block __ handler:Catch __ finalizer:Finally {
       return {
         type: "TryStatement",
-        block: block,
-        handler: handler,
-        finalizer: finalizer
+        block,
+        handler,
+        finalizer
       };
     }
   / TryToken __ block:Block __ handler:Catch {
       return {
         type: "TryStatement",
-        block: block,
-        handler: handler,
+        block,
+        handler,
         finalizer: null
       };
     }
   / TryToken __ block:Block __ finalizer:Finally {
       return {
         type: "TryStatement",
-        block: block,
+        block,
         handler: null,
-        finalizer: finalizer
+        finalizer
       };
     }
 
@@ -1257,8 +1257,8 @@ Catch
   = CatchToken __ "(" __ param:Identifier __ ")" __ body:Block {
       return {
         type: "CatchClause",
-        param: param,
-        body: body
+        param,
+        body
       };
     }
 
@@ -1277,9 +1277,9 @@ FunctionDeclaration
     {
       return {
         type: "FunctionDeclaration",
-        id: id,
+        id,
         params: optionalList(extractOptional(params, 0)),
-        body: body
+        body
       };
     }
 
@@ -1292,7 +1292,7 @@ FunctionExpression
         type: "FunctionExpression",
         id: extractOptional(id, 0),
         params: optionalList(extractOptional(params, 0)),
-        body: body
+        body
       };
     }
 

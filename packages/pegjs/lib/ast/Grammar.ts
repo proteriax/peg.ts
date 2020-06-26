@@ -1,10 +1,44 @@
-import { Node } from "./Node"
-import visitor from "./visitor"
-import util from "../util"
+import {
+  Node,
+  Rule,
+  ChoiceExpression,
+  SequenceExpression,
+  RuleReferenceExpression,
+  LiteralMatcher,
+  INode,
+} from "./Node"
+import { Initializer, ASTVisitor } from "./visitor"
+import type { SourceLocation } from "../../typings/generated-parser"
 
-class Grammar extends Node {
+/**
+ * The main PEG.js AST class returned by the parser.
+ */
+export class Grammar extends Node {
+  // Default properties and methods
+
+  private readonly _alwaysConsumesOnSuccess: any
+  type: "grammar"
+  comments?: CommentMap
+  initializer?: Initializer
+  rules: Rule[]
+
+  // Added by Bytecode generator
+  literals: string[]
+  classes: string[]
+  expectations: string[]
+  functions: string[]
+
+  // Added by JavaScript generator
+  code?: string
+
   // Creates a new AST
-  constructor(initializer, rules, comments, location) {
+
+  constructor(
+    initializer: undefined | Initializer,
+    rules: Rule[],
+    comments: undefined | CommentMap,
+    location: SourceLocation
+  ) {
     super("grammar", location)
 
     this.initializer = initializer
@@ -15,42 +49,39 @@ class Grammar extends Node {
     this._alwaysConsumesOnSuccess = new AlwaysConsumesOnSuccess(this)
   }
 
-  alwaysConsumesOnSuccess(node) {
+  alwaysConsumesOnSuccess(node: Object): boolean {
     return this._alwaysConsumesOnSuccess.visit(node)
   }
 
-  findRule(name) {
-    return util.find(this.rules, rule => rule.name === name)
+  findRule(name: string): Rule | undefined {
+    return this.rules.find(rule => rule.name === name)
   }
 
-  indexOfRule(name) {
-    return util.findIndex(this.rules, rule => rule.name === name)
+  indexOfRule(name: string): number {
+    return this.rules.findIndex(rule => rule.name === name)
   }
 }
 
-export default Grammar
-
 /* ***************************** @private ***************************** */
 
-class AlwaysConsumesOnSuccess extends visitor.ASTVisitor {
-  constructor(ast) {
+class AlwaysConsumesOnSuccess extends ASTVisitor<boolean> {
+  constructor(readonly ast: Grammar) {
     super()
-    this.ast = ast
   }
 
-  choice(node) {
+  choice(node: ChoiceExpression) {
     return node.alternatives.every(this.visit, this)
   }
 
-  sequence(node) {
+  sequence(node: SequenceExpression) {
     return node.elements.some(this.visit, this)
   }
 
-  rule_ref(node) {
+  rule_ref(node: RuleReferenceExpression) {
     return this.visit(this.ast.findRule(node.name))
   }
 
-  literal(node) {
+  literal(node: LiteralMatcher) {
     return node.value !== ""
   }
 }
@@ -63,11 +94,14 @@ function consumesFalse() {
   return false
 }
 
-function consumesExpression(node) {
+function consumesExpression(
+  this: AlwaysConsumesOnSuccess,
+  node: INode & { expression: INode }
+) {
   return this.visit(node.expression)
 }
 
-util.extend(AlwaysConsumesOnSuccess.prototype, {
+Object.assign(AlwaysConsumesOnSuccess.prototype, {
   rule: consumesExpression,
   named: consumesExpression,
   action: consumesExpression,
@@ -84,3 +118,11 @@ util.extend(AlwaysConsumesOnSuccess.prototype, {
   class: consumesTrue,
   any: consumesTrue,
 })
+
+interface CommentMap {
+  [offset: number]: {
+    text: string
+    multiline: boolean
+    location: SourceLocation
+  }
+}

@@ -1,5 +1,3 @@
-"use strict"
-
 const benchmarks = [
   {
     id: "json",
@@ -39,4 +37,4 @@ const benchmarks = [
   },
 ]
 
-export default benchmarks;
+export default benchmarks

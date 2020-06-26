@@ -1,6 +1,4 @@
-"use strict"
-
-import peg from "pegjs";
+import * as peg from "pegjs"
 
 const Runner = {
   run(benchmarks, runCount, options, callbacks) {
@@ -58,16 +56,14 @@ const Runner = {
         )
         state.benchmarkInputSize = 0
         state.benchmarkParseTime = 0
-      };
+      }
     }
 
     function testRunner(benchmark, test) {
       return () => {
         callbacks.testStart(benchmark, test)
 
-        const input = callbacks.readFile(
-          `tools/benchmark/${benchmark.id}/${test.file}`
-        )
+        const input = callbacks.readFile(`tools/benchmark/${benchmark.id}/${test.file}`)
 
         let parseTime = 0
         for (let i = 0; i < runCount; i++) {
@@ -81,7 +77,7 @@ const Runner = {
 
         state.benchmarkInputSize += input.length
         state.benchmarkParseTime += averageParseTime
-      };
+      }
     }
 
     function benchmarkFinalizer(benchmark) {
@@ -117,4 +113,4 @@ const Runner = {
   },
 }
 
-export default Runner;
+export default Runner

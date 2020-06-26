@@ -1,6 +1,4 @@
-"use strict"
-
-import publish from "./publish";
+import publish from "./publish"
 
 if (process.env.GITHUB_EVENT_NAME !== "push") {
   console.log("Skipping publish because dev release's are only published on `git push`.")

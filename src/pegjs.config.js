@@ -1,14 +1,12 @@
-"use strict"
-
 module.exports = {
   input: "src/parser.pegjs",
-  output: "packages/pegjs/lib/parser.js",
+  output: "packages/pegjs/lib/parser.ts",
 
   header: "/* eslint-disable */",
 
   dependencies: {
-    ast: "./ast",
-    util: "./util",
+    ast: "./ast/mod",
+    util: "./util/mod",
   },
 
   features: {

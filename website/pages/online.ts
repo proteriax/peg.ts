@@ -1,5 +1,3 @@
-"use strict"
-
 import template from "../templates/editor"
 
 const input = `

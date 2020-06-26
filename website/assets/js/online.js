@@ -22,7 +22,7 @@ $(document).ready(function () {
   function buildSizeAndTimeInfoHtml(title, size, time) {
     return $("<span/>", {
       class: "size-and-time",
-      title: title,
+      title,
       html: `${(size / KB).toPrecision(2)}&nbsp;kB, ${time}&nbsp;ms, ${(
         size /
         KB /

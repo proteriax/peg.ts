@@ -1,9 +1,11 @@
-"use strict"
+import type { Grammar } from "../../ast/Grammar"
+import type { Session } from "../session"
+import type { LabeledExpression } from "../../ast/Node"
 
-//
-// Check if the given element's expression is of type `semantic_*`
-//
-function isSemanticPredicate(element) {
+/**
+ * Check if the given element's expression is of type `semantic_*`
+ */
+function isSemanticPredicate(element: LabeledExpression) {
   const type = element.expression.type
 
   if (type === "semantic_and") return true
@@ -12,13 +14,13 @@ function isSemanticPredicate(element) {
   return false
 }
 
-//
-// Compiler pass to ensure the following are enforced:
-//
-//   - plucking can not be done with an action block
-//   - cannot pluck a semantic predicate
-//
-function reportIncorrectPlucking(ast, session) {
+/**
+ * Compiler pass to ensure the following are enforced:
+ *
+ *   - plucking can not be done with an action block
+ *   - cannot pluck a semantic predicate
+ */
+export function reportIncorrectPlucking(ast: Grammar, session: Session) {
   session.buildVisitor({
     action(node) {
       this.visit(node.expression, true)
@@ -37,5 +39,3 @@ function reportIncorrectPlucking(ast, session) {
     },
   })(ast)
 }
-
-export default reportIncorrectPlucking;

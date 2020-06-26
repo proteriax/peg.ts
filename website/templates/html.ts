@@ -1,5 +1,3 @@
-"use strict"
-
 const defaultEnd = `
         <footer id="footer">
             Copyright &copy; 2017+ <a href="https://futagoza.github.io/">Futago-za Ryuu</a>
@@ -87,4 +85,4 @@ export default ({
 
 </html>
 
-`.trim();
+`.trim()
