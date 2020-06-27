@@ -27,12 +27,13 @@ let options = {
   cache: false,
   dependencies: {},
   format: "commonjs",
+  helpers: false,
   optimize: "speed",
   output: "source",
   parser: {},
   plugins: [],
-  trace: false,
   prettier: false,
+  trace: false,
 }
 const EXPORT_VAR_FORMATS = ["globals", "umd"]
 const MODULE_FORMATS = ["commonjs", "es"]
@@ -147,6 +148,13 @@ while (args.length > 0) {
     case "--no-cache":
       options.cache = false
       break
+
+    case "prettier":
+      options.prettier = true
+      break
+
+    case "--helpers":
+      options.helpers = nextArg("--helpers")
 
     case "-d":
     case "--dependency": {
@@ -319,7 +327,7 @@ function abort$1(message) {
   process.exit(1)
 }
 
-function main() {
+async function main() {
   let inputStream
   let outputStream
   let originalContent
@@ -351,33 +359,32 @@ function main() {
     })
   }
 
-  readStream(inputStream).then(input => {
-    let location
-    let source
+  const input = await readStream(inputStream)
+  let location
+  let source
 
-    try {
-      source = peg.generate(input, options$1)
-    } catch (e) {
-      if (typeof e.location === "object") {
-        location = e.location.start
+  try {
+    source = peg.generate(input, { ...options$1, output: "source" })
+  } catch (e) {
+    if (typeof e.location === "object") {
+      location = e.location.start
 
-        if (typeof location === "object") {
-          return abort$1(`${location.line}:${location.column}: ${e.message}`)
-        }
+      if (typeof location === "object") {
+        return abort$1(`${location.line}:${location.column}: ${e.message}`)
       }
-
-      if (originalContent) {
-        closeStream(outputStream)
-        fs.writeFileSync(outputFile, originalContent, "utf8")
-      }
-
-      console.error(e)
-      return abort$1(e.message)
     }
 
-    outputStream.write(source)
-    closeStream(outputStream)
-  })
+    if (originalContent) {
+      closeStream(outputStream)
+      fs.writeFileSync(outputFile, originalContent, "utf8")
+    }
+
+    console.error(e)
+    return abort$1(e.message)
+  }
+
+  outputStream.write(source)
+  closeStream(outputStream)
 }
 
-main()
+main().catch(console.error)

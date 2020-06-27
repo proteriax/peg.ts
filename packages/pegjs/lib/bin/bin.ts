@@ -25,7 +25,7 @@ function abort(message: string) {
 }
 
 // Main
-function main() {
+async function main() {
   let inputStream: NodeJS.ReadableStream
   let outputStream: NodeJS.WritableStream
   let originalContent: string
@@ -58,32 +58,31 @@ function main() {
     })
   }
 
-  readStream(inputStream).then(input => {
-    let location: SourcePosition
-    let source: string
+  const input = await readStream(inputStream)
+  let location: SourcePosition
+  let source: string
 
-    try {
-      source = peg.generate(input, options)
-    } catch (e) {
-      if (typeof e.location === "object") {
-        location = e.location.start
-        if (typeof location === "object") {
-          return abort(`${location.line}:${location.column}: ${e.message}`)
-        }
+  try {
+    source = peg.generate(input, { ...options, output: "source" })
+  } catch (e) {
+    if (typeof e.location === "object") {
+      location = e.location.start
+      if (typeof location === "object") {
+        return abort(`${location.line}:${location.column}: ${e.message}`)
       }
-
-      if (originalContent) {
-        closeStream(outputStream)
-        fs.writeFileSync(outputFile, originalContent, "utf8")
-      }
-
-      console.error(e)
-      return abort(e.message)
     }
 
-    outputStream.write(source)
-    closeStream(outputStream)
-  })
+    if (originalContent!) {
+      closeStream(outputStream)
+      fs.writeFileSync(outputFile, originalContent!, "utf8")
+    }
+
+    console.error(e)
+    return abort(e.message)
+  }
+
+  outputStream.write(source)
+  closeStream(outputStream)
 }
 
-main()
+main().catch(console.error)

@@ -2,8 +2,8 @@ import * as fs from "fs"
 import * as path from "path"
 import * as peg from "@pegjs/main"
 import { isString, isObject } from "lodash"
-import { IBuildOptions } from "../lib/mod"
-import { FormatOptions, OptimizeOptions } from "../lib/compiler/mod"
+import type { IBuildOptions } from "../mod"
+import type { FormatOptions, OptimizeOptions } from "../compiler/mod"
 
 // Options
 
@@ -14,12 +14,13 @@ let options = {
   cache: false,
   dependencies: {},
   format: "commonjs",
+  helpers: false,
   optimize: "speed",
   output: "source",
   parser: {},
   plugins: [],
-  trace: false,
   prettier: false,
+  trace: false,
 } as IBuildOptions
 
 const EXPORT_VAR_FORMATS = ["globals", "umd"]
@@ -142,6 +143,13 @@ while (args.length > 0) {
     case "--no-cache":
       options.cache = false
       break
+
+    case "prettier":
+      options.prettier = true
+      break
+
+    case "--helpers":
+      options.helpers = nextArg("--helpers")
 
     case "-d":
     case "--dependency": {
