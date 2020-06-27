@@ -1,8 +1,8 @@
-#!/usr/bin/env node -r ts-node/register
+#!/usr/bin/env node
 import * as fs from "fs"
-import * as peg from "../dist/peg.cjs"
+import * as peg from "@pegjs/main"
 import options from "./options"
-import type { SourcePosition } from "../typings/generated-parser"
+import type { SourcePosition } from "../../typings/generated-parser"
 
 // Helpers
 const readStream = (inputStream: NodeJS.ReadableStream) =>

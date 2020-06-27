@@ -1,7 +1,7 @@
 import "../useHelpers"
-import { compiler } from "pegjs"
+import { compiler } from "@pegjs/main"
 import { expect } from "chai"
-import { generateBytecode } from "pegjs/lib/compiler/passes/generate-bytecode"
+import { generateBytecode } from "@pegjs/main/lib/compiler/passes/generate-bytecode"
 import { bytecodeDetails, constsDetails } from "./shared"
 
 const o = compiler.opcodes

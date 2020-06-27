@@ -1,4 +1,5 @@
-import { API, SourceLocation, IOptions } from "../../typings/generated-parser"
+import { isFunction } from "lodash"
+import type { API, SourceLocation, IOptions } from "../../typings/generated-parser"
 import type { IVisitorMap, IVisitor } from "../ast/visitor"
 import { Grammar } from "../ast/Grammar"
 import { GrammarError } from "../grammar-error"
@@ -6,7 +7,7 @@ import { ICompilerPassOptions } from "./mod"
 import * as visitor from "../ast/visitor"
 import { opcodes } from "./opcodes"
 import * as parser from "../parser"
-import * as vm from "../util/vm"
+import { evalModule } from "../util/vm"
 
 function fatal(message: string, location?: SourceLocation) {
   if (location != null) {
@@ -32,10 +33,6 @@ export interface IPassesMap {
   [type: string]: ICompilerPass[]
 }
 
-interface ISessionVM {
-  evalModule(code: string, context?: { [name: string]: any }): any
-}
-
 interface ISessionMessageEmitter {
   (message: string, location: SourceLocation): any
 }
@@ -46,7 +43,7 @@ interface ISessionConfig {
   parser?: API<Grammar>
   passes?: IPassesMap
   visitor?: typeof visitor
-  vm?: ISessionVM
+  vm?: { evalModule: typeof evalModule }
   warn?: ISessionMessageEmitter
   error?: ISessionMessageEmitter
 }
@@ -61,14 +58,14 @@ export interface Session extends Required<ISessionConfig> {}
 export class Session implements ISessionConfig {
   fatal = fatal
   constructor(config: ISessionConfig = {}) {
-    this.opcodes = config.opcodes ?? opcodes
+    this.opcodes = config.opcodes ?? (opcodes as any)
     this.parser = config.parser ?? (parser as todo)
     this.passes = config.passes ?? {}
     this.visitor = config.visitor ?? visitor
-    this.vm = config.vm ?? vm
+    this.vm = config.vm ?? { evalModule }
 
-    if (typeof config.warn === "function") this.warn = config.warn
-    if (typeof config.error === "function") this.error = config.error
+    if (isFunction(config.warn)) this.warn = config.warn
+    if (isFunction(config.error)) this.error = config.error
   }
 
   parse(input: string, options?: ParserOptions) {

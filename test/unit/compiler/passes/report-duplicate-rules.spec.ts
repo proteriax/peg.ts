@@ -1,6 +1,6 @@
 import "./useHelpers"
 import chai from "chai"
-import { compiler } from "pegjs"
+import { compiler } from "@pegjs/main"
 
 const pass = compiler.passes.check.reportDuplicateRules
 

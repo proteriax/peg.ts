@@ -4,9 +4,23 @@ import type { Grammar } from "../../ast/Grammar"
 import type { Session } from "../session"
 import type { ICompilerPassOptions } from "../mod"
 import { regexpEscape } from "../../util/mod"
-import { version as VERSION } from "../../../package.json"
+import { version as VERSION } from "@pegjs/main/package.json"
 import jsesc from "jsesc"
 import { Rule } from "../../ast/Node"
+
+import {
+  peg$SyntaxError,
+  peg$buildSimpleError,
+  peg$buildStructuredError,
+} from "@pegjs/main/runtime/SyntaxError"
+import { peg$DefaultTracer } from "@pegjs/main/runtime/DefaultTracer"
+import {
+  peg$literalExpectation,
+  peg$classExpectation,
+  peg$anyExpectation,
+  peg$endExpectation,
+  peg$otherExpectation,
+} from "@pegjs/main/runtime/expectation"
 
 type StringGenerator = Generator<string | undefined, void, undefined>
 
@@ -1263,23 +1277,42 @@ export function generateJS(
           }`
     }
 
+    function generateHelpers() {
+      return `
+        ${peg$SyntaxError}
+        ${peg$buildSimpleError}
+        ${peg$buildStructuredError}
+        ${peg$literalExpectation}
+        ${peg$DefaultTracer}
+        ${peg$classExpectation}
+        ${peg$anyExpectation}
+        ${peg$endExpectation}
+        ${peg$otherExpectation}
+      `
+    }
+
     const generators = {
       *commonjs(): StringGenerator {
         yield* generateHeaderComment()
-        yield `const {
-            peg$SyntaxError,
-            peg$buildSimpleError,
-            peg$buildStructuredError,
-          } = require("@pegjs/runtime/SyntaxError");
-          const { peg$DefaultTracer } = require("@pegjs/runtime/DefaultTracer");
-          const {
-            peg$literalExpectation,
-            peg$classExpectation,
-            peg$anyExpectation,
-            peg$endExpectation,
-            peg$otherExpectation,       
-          } = require("@pegjs/runtime/expectation");
-        `
+
+        if (options.helpers) {
+          yield `const {
+              peg$SyntaxError,
+              peg$buildSimpleError,
+              peg$buildStructuredError,
+            } = require("${options.helpers}/SyntaxError");
+            const { peg$DefaultTracer } = require("${options.helpers}/DefaultTracer");
+            const {
+              peg$literalExpectation,
+              peg$classExpectation,
+              peg$anyExpectation,
+              peg$endExpectation,
+              peg$otherExpectation,       
+            } = require("${options.helpers}/expectation");
+          `
+        } else {
+          yield generateHelpers()
+        }
 
         yield
         yield '"use strict";'
@@ -1301,20 +1334,25 @@ export function generateJS(
 
       *es(): StringGenerator {
         yield* generateHeaderComment()
-        yield `import {
+
+        if (options.helpers) {
+          yield `import {
             peg$SyntaxError,
             peg$buildSimpleError,
             peg$buildStructuredError,
-          } from "@pegjs/runtime/SyntaxError";
-          import { peg$DefaultTracer } from "@pegjs/runtime/DefaultTracer";
+          } from "${options.helpers}/SyntaxError";
+          import { peg$DefaultTracer } from "${options.helpers}/DefaultTracer";
           import {
             peg$literalExpectation,
             peg$classExpectation,
             peg$anyExpectation,
             peg$endExpectation,
             peg$otherExpectation,       
-          } from "@pegjs/runtime/expectation";
+          } from "${options.helpers}/expectation";
         `
+        } else {
+          yield generateHelpers()
+        }
 
         yield
 

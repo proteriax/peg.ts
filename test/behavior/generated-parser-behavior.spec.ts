@@ -1,7 +1,7 @@
 import { expect, Assertion, util, use } from "chai"
-import * as peg from "pegjs"
+import * as peg from "@pegjs/main"
 import sinon from "sinon"
-import type { IBuildOptions } from "pegjs"
+import type { IBuildOptions } from "@pegjs/main"
 import { API } from "pegjs/typings/generated-parser"
 
 declare global {

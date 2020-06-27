@@ -1,5 +1,5 @@
 {
-  "name": "pegjs",
+  "name": "@pegjs/main",
   "version": "0.11.0",
   "description": "Parser generator for JavaScript",
   "keywords": [
@@ -12,7 +12,6 @@
     "PEG"
   ],
   "dependencies": {
-    "@pegjs/runtime": "*",
     "jsesc": "^3.0.1",
     "lodash": "^4.17.15"
   },
@@ -31,7 +30,9 @@
     "Futago-za Ryuu <futagoza.ryuu@gmail.com>"
   ],
   "main": "lib/mod.ts",
-  "bin": "bin/peg.ts",
+  "bin": {
+    "pegjs": "dist/bin.js"
+  },
   "engines": {
     "node": ">= 8"
   }

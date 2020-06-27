@@ -3,7 +3,7 @@
  *
  * Based on `vm.runInContext` found in Node.js, this is a cross-env solution.
  */
-export function evalModule(source: string, context: { [key: string]: any }) {
+export function evalModule(source: string, context: { [key: string]: any } = {}) {
   const argumentKeys = Object.keys(context)
   const argumentValues = Object.values(context)
 

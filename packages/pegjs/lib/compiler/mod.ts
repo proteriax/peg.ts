@@ -14,8 +14,10 @@ import { reportIncorrectPlucking } from "./passes/report-incorrect-plucking"
 import { Grammar } from "../ast/Grammar"
 import type { Session } from "./session"
 import { IStageMap } from "../util/mod"
-export { opcodes } from "./opcodes"
 
+import { name } from "../../package.json"
+
+export { opcodes } from "./opcodes"
 export { Session } from "./session"
 
 export type FormatOptions = "commonjs" | "es"
@@ -29,6 +31,7 @@ export interface ICompilerOptions<T = OutputOptions> {
   context?: { [name: string]: any }
   dependencies?: { [name: string]: string }
   exportVar?: string
+  helpers?: string | false
   features?: IGeneratedParserFeatures
   format?: FormatOptions
   header?: string | string[]
@@ -108,6 +111,7 @@ export function compile(ast: Grammar, session: Session, options: ICompilerOption
     format: "commonjs",
     optimize: "speed",
     output: "parser",
+    helpers: `${name}/runtime`,
     trace: false,
     prettier: false,
     ...options,

@@ -1,6 +1,6 @@
 import * as fs from "fs"
 import * as path from "path"
-import * as peg from "../dist/peg.cjs"
+import * as peg from "@pegjs/main"
 import { isString, isObject } from "lodash"
 import { IBuildOptions } from "../lib/mod"
 import { FormatOptions, OptimizeOptions } from "../lib/compiler/mod"
@@ -163,7 +163,7 @@ while (args.length > 0) {
     case "--config":
     case "--extra-options-file":
       argument = nextArg("-c/--config/--extra-options-file")
-      if ([".js", ".ts"].includes(path.extname(argument))) {
+      if ([".js", ".ts", ".json"].includes(path.extname(argument))) {
         config = require(path.resolve(argument))
       } else {
         try {

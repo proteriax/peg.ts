@@ -1,15 +1,15 @@
-import { API } from "../typings/generated-parser"
+import { isFunction } from "lodash"
+import type { API } from "../typings/generated-parser"
+import * as compiler from "./compiler/mod"
+import { OutputOptions, ICompilerOptions, passes, compile } from "./compiler/mod"
+import { convertPasses } from "./util/mod"
+import { version } from "../package.json"
+import { ParserOptions, Session } from "./compiler/session"
 
 export { GrammarError } from "./grammar-error"
 export * as ast from "./ast/mod"
-import * as compiler from "./compiler/mod"
-import { OutputOptions, ICompilerOptions, passes, compile } from "./compiler/mod"
 export * as util from "./util/mod"
 export { default as parser } from "./parser"
-import { convertPasses } from "./util/mod"
-
-import { version } from "../package.json"
-import { ParserOptions, Session } from "./compiler/session"
 
 // PEG.js version (uses semantic versioning).
 export { version as VERSION, compiler }
@@ -68,7 +68,7 @@ export function generate(grammar: string, options: IBuildOptions | ParserOptions
   if (Array.isArray(options.plugins)) {
     options.plugins.forEach(p => {
       const use = "use" in p ? p.use : p
-      if (typeof use !== "function") return
+      if (!isFunction(use)) return
       use.call(p, session, options)
     })
   }

@@ -25,5 +25,5 @@ export function convertPasses(stages: IStageMap): IPassesMap {
   )
 }
 
-export { stringEscape, regexpEscape, reservedWords } from "./js"
+export { regexpEscape, reservedWords } from "./js"
 export { evalModule } from "./vm"

@@ -1,7 +1,7 @@
 import { expect } from "chai"
-import * as peg from "pegjs"
+import * as peg from "@pegjs/main"
 import sinon from "sinon"
-import { transpile } from "pegjs/lib/typescript"
+import { transpile } from "@pegjs/main/lib/typescript"
 
 describe("PEG.js API", () => {
   describe("generate", () => {

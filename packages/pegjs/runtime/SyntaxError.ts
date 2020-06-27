@@ -1,4 +1,12 @@
-import { SourceLocation } from "pegjs/typings/api"
+import { SourceLocation } from "@pegjs/main/typings/api"
+import {
+  Expectation,
+  LiteralExpectation,
+  ClassExpectation,
+  AnyExpectation,
+  EndExpectation,
+  OtherExpectation,
+} from "@pegjs/main/lib/ast/Expectation"
 
 export class peg$SyntaxError extends Error {
   constructor(

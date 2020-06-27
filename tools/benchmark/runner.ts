@@ -1,4 +1,4 @@
-import * as peg from "pegjs"
+import * as peg from "@pegjs/main"
 
 const Runner = {
   run(benchmarks, runCount, options, callbacks) {

@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import * as peg from "pegjs"
+import * as peg from "@pegjs/main"
 
 describe("plugin API", () => {
   describe("use", () => {

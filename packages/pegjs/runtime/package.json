@@ -1,0 +1,7 @@
+{
+  "name": "@pegjs/runtime",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc --module ESNext --target ES2019 --rootDir src --outDir esm >/dev/null; :"
+  }
+}

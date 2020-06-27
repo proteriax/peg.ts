@@ -20,22 +20,6 @@ function sourceEscape(s: string) {
 /* eslint-enable no-control-regex */
 
 /**
- * ECMA-262, 5th ed., 7.8.4: All characters may appear literally in a string
- * literal except for the closing quote character, backslash, carriage
- * return, line separator, paragraph separator, and line feed. Any character
- * may appear in the form of an escape sequence.
- *
- * For portability, we also escape all control and non-ASCII characters.
- */
-export function stringEscape(s: string) {
-  return sourceEscape(
-    s
-      .replace(/\\/g, "\\\\") // backslash
-      .replace(/"/g, '\\"') // closing double quote
-  )
-}
-
-/**
  * Based on ECMA-262, 5th ed., 7.8.5 & 15.10.1.
  *
  * For portability, we also escape all control and non-ASCII characters.

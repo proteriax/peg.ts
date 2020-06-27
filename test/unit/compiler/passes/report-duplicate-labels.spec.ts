@@ -1,6 +1,6 @@
 import "./useHelpers"
 import { expect } from "chai"
-import { reportDuplicateLabels as pass } from "pegjs/lib/compiler/passes/report-duplicate-labels"
+import { reportDuplicateLabels as pass } from "@pegjs/main/lib/compiler/passes/report-duplicate-labels"
 
 describe("compiler pass |reportDuplicateLabels|", () => {
   describe("in a sequence", () => {

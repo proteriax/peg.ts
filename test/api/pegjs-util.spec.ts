@@ -1,6 +1,6 @@
-import { util } from "pegjs"
+import { util } from "@pegjs/main"
 import { expect } from "chai"
-import type { IPassesMap } from "pegjs/lib/compiler/session"
+import type { IPassesMap } from "@pegjs/main/lib/compiler/session"
 
 const { convertPasses } = util
 

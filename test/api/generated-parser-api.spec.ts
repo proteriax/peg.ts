@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import * as peg from "pegjs"
+import * as peg from "@pegjs/main"
 import sinon from "sinon"
 
 describe("generated parser API", () => {

@@ -1,7 +1,7 @@
 import chai from "chai"
 import { expect } from "chai"
 import { forEach } from "lodash"
-import { parser, ast } from "pegjs"
+import { parser, ast } from "@pegjs/main"
 
 // better diagnostics for deep eq failure
 chai.config.truncateThreshold = 0
@@ -229,7 +229,7 @@ describe("PEG.js grammar parser", function () {
         result
       )
 
-      if (!passed && typeof props !== "undefined") {
+      if (!passed && props !== undefined) {
         Object.keys(props).forEach(key => {
           new Assertion(result).to.have.property(key).that.is.deep.equal(props[key])
         })

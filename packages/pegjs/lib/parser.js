@@ -5,15 +5,15 @@ import {
   peg$SyntaxError,
   peg$buildSimpleError,
   peg$buildStructuredError,
-} from "@pegjs/runtime/SyntaxError";
-import { peg$DefaultTracer } from "@pegjs/runtime/DefaultTracer";
+} from "@pegjs/main/runtime/SyntaxError";
+import { peg$DefaultTracer } from "@pegjs/main/runtime/DefaultTracer";
 import {
   peg$literalExpectation,
   peg$classExpectation,
   peg$anyExpectation,
   peg$endExpectation,
   peg$otherExpectation,
-} from "@pegjs/runtime/expectation";
+} from "@pegjs/main/runtime/expectation";
 
 import * as ast from "./ast/mod";
 import * as util from "./util/mod";

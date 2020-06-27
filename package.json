@@ -11,7 +11,7 @@
     "lint": "eslint --ext .ts .",
     "spec": "mocha --reporter progress",
     "benchmark": "node tools/benchmark",
-    "build-parser": "pegjs -c src/pegjs.config.js",
+    "build-parser": "pegjs -c src/pegjs.config.json",
     "lebab": "lebab --replace ./packages/pegjs/lib/parser.ts --transform arrow,multi-var,arrow-return,template,obj-shorthand",
     "build-dist": "NODE_ENV=production rollup -c ./tools/bundler/rollup.config.js",
     "build-website": "node website/export",

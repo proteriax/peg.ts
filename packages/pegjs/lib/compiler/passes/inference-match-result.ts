@@ -53,7 +53,7 @@ export function inferenceMatchResult(ast: Grammar, session: Session) {
       let oldResult: number | undefined
       let count = 0
 
-      if (typeof node.match === "undefined") {
+      if (node.match === undefined) {
         node.match = 0
         do {
           oldResult = node.match

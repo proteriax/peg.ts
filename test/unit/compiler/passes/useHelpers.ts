@@ -1,7 +1,7 @@
 import { isString, forEach } from "lodash"
 import { util, Assertion, use, expect } from "chai"
 import LikeHelper from "chai-like"
-import { Session } from "pegjs/lib/compiler/session"
+import { Session } from "@pegjs/main/lib/compiler/session"
 
 declare global {
   namespace Chai {
